@@ -190,7 +190,7 @@ ELSE                               -> MONITOR
 
 **Detailed Ticket Breakdown Added:**
 - **Ticket 0:** Repo skeleton & initial stubs — **Done (V S S K Sai Narayana)**
-- **Ticket 1:** Evidence / Hypothesis / Decision core object schemas
+- **Ticket 1:** Evidence / Hypothesis / Decision core object schemas — **Done (Sujeet Jaiswal)**
 - **Ticket 2:** A2 Normalizer
 - **Ticket 3:** A3 Hash/Fingerprint router
 - **Ticket 4:** A4 Anomaly Detector
