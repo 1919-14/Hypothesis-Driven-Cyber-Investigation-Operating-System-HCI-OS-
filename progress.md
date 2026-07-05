@@ -90,3 +90,36 @@ Each entry should include:
 
 ---
 
+## [2026-07-06 01:32] — SETUP — Roadmap Tickets 0-18 Structured (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+- Added the structured MVP development ticket schedule (Tickets 0 to 18) directly into both `context_understanding.md` and `progress.md` to ensure clarity and traceability of task assignments across teammates.
+- Formatted future logs to require explicit Contributor naming to prevent race-condition overwrite issues during concurrent branch merges.
+
+**Detailed Ticket Breakdown Added:**
+- **Ticket 0:** Repo skeleton & initial stubs — **Done (V S S K Sai Narayana)**
+- **Ticket 1:** Evidence / Hypothesis / Decision core object schemas
+- **Ticket 2:** A2 Normalizer
+- **Ticket 3:** A3 Hash/Fingerprint router
+- **Ticket 4:** A4 Anomaly Detector
+- **Ticket 6:** A7 SOAR & Decision
+- **Ticket 7:** A12 Audit & Memory
+- **Ticket 5:** A6 Attribution & RAG
+- **Ticket 8:** A1 Ingestion & Trust
+- **Ticket 9:** A10 Active Hunt
+- **Ticket 10:** A11 Watchdog
+- **Ticket 11:** A13 Federation
+- **Ticket 12:** Self-Defense wiring SD-0..SD-8
+- **Ticket 13:** A5/A8/A9 simulated agents
+- **Ticket 13.5:** Digital Twin Lite
+- **Ticket 14:** UI layer
+- **Ticket 15:** Benchmarking & evaluation scripts
+- **Ticket 16:** Business Impact & Cost Case slide prep
+- **Ticket 17:** Demo Script & backup walkthrough video
+- **Ticket 18:** Judge Q&A Playbook review
+
+---
+
+
