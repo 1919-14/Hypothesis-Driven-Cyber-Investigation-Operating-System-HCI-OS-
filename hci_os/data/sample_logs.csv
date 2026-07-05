@@ -1,0 +1,4 @@
+timestamp,src_ip,dst_ip,method,path,user_agent,status,bytes
+2026-01-15T02:47:33Z,185.23.147.82,203.94.1.10,GET,/cgi-bin/%2e%2e/etc/passwd,curl/7.68.0,200,1234
+2026-01-15T02:47:35Z,185.23.147.82,203.94.1.10,GET,/api/users,curl/7.68.0,404,234
+2026-01-15T02:47:38Z,10.0.1.45,203.94.1.20,POST,/login,chrome/120.0,200,567

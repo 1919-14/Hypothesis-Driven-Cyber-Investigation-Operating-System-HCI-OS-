@@ -50,3 +50,29 @@ Each entry should include:
 **Categories:** SETUP, BUILD, DEBUG, TEST, DEPLOY, DEMO, RESEARCH, DECISION
 
 ---
+
+## [2026-07-06 00:14] — BUILD — TICKET 0 COMPLETE: Project Skeleton Created
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+- Created full `hci_os/` project skeleton (project renamed from "kavach" to "hci_os" — going forward kavach = HCI-OS, never use kavach in code/docs)
+- 8 package directories + `__init__.py` files all created
+- All 13 agent stubs (A1–A13) created with correct docstrings and function signatures
+- 3 object placeholders (evidence.py, hypothesis.py, decision.py)
+- 5 store placeholders (redis, postgres, faiss, neo4j, elasticsearch)
+- pipeline, ui, benchmark, tests placeholders created
+- Data seeds: `asset_inventory.json` (3 assets: CBSE WebSvr, DB, OT SCADA), `sample_logs.csv`
+- `requirements.txt`, `README.md`, `.gitignore` created
+
+**Syntax check result:** ALL 13 AGENT STUBS — NO SYNTAX ERRORS (python -m py_compile)
+
+**Key decisions:**
+- Root folder = `hci_os` (Python-safe, never "kavach")
+- A5, A8, A9 marked SIMULATE in docstrings (diagrams only)
+- MUST spine: A2, A3, A4, A7, A12
+- OT SCADA asset: `can_reboot: false`, `can_interrupt: false` → forces Human Gate regardless of confidence
+
+**Next step:** Ticket 1 — Implement the Three Core Objects (Evidence, Hypothesis, Decision dataclasses)
+
+---
