@@ -1,0 +1,38 @@
+{
+  "CBSE-WebSvr-01": {
+    "ip": "203.94.1.10",
+    "type": "web_server",
+    "criticality": "HIGH",
+    "mission": "exam_portal",
+    "software": ["Apache 2.4.49", "Log4j 2.14.1"],
+    "internet_facing": true,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "HIGH"
+  },
+  "CBSE-DB-01": {
+    "ip": "203.94.1.20",
+    "type": "database",
+    "criticality": "CRITICAL",
+    "mission": "student_records",
+    "software": ["MySQL 8.0.27"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "CBSE-OT-SCADA-01": {
+    "ip": "10.0.2.10",
+    "type": "scada_controller",
+    "criticality": "CRITICAL",
+    "mission": "power_management",
+    "software": ["SCADA 2.3.1"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "CRITICAL"
+  }
+}
