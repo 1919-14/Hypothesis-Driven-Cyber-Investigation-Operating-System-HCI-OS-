@@ -345,6 +345,31 @@ Effective_Weight = Base_Weight × Analyst_Seniority_Score
 | Week 3 | SOAR mock + Audit + Human Correction + Confidence Decay | Actions logged → human correction modifies JSON → replay works |
 | Week 4 | Hunt mock, Watchdog, Hypothesis UI, Benchmarks, Demo Video, Slides | Watchdog prints logs → NetworkX visual → Slides → Demo Video → Submit |
 
+### Detailed Ticket Path
+
+| Ticket | Scope | Phase | Developed By |
+|--------|-------|-------|--------------|
+| **Ticket 0** | Repo skeleton & initial stubs | Setup | Done (V S S K Sai Narayana) |
+| **Ticket 1** | Evidence / Hypothesis / Decision core object schemas | Foundation | |
+| **Ticket 2** | A2 Normalizer | Spine | |
+| **Ticket 3** | A3 Hash/Fingerprint router | Spine | |
+| **Ticket 4** | A4 Anomaly Detector | Spine | |
+| **Ticket 6** | A7 SOAR & Decision | Spine | |
+| **Ticket 7** | A12 Audit & Memory | Spine | |
+| **Ticket 5** | A6 Attribution & RAG (once Spine produces Evidence) | Muscles | |
+| **Ticket 8** | A1 Ingestion & Trust | Muscles | |
+| **Ticket 9** | A10 Active Hunt | Muscles | |
+| **Ticket 10**| A11 Watchdog | Muscles | |
+| **Ticket 11**| A13 Federation | Muscles | |
+| **Ticket 12**| Self-Defense wiring (SD-0..SD-8 integration) | Core Wiring | |
+| **Ticket 13**| A5/A8/A9 simulated agents (GNN, Critic, Quarantine) | Simulation | |
+| **Ticket 13.5**| Digital Twin Lite (reuses A5 GNN topology graph) | Simulation | |
+| **Ticket 14**| UI layer (starts skeleton in parallel with Muscles) | UI/UX | |
+| **Ticket 15**| Benchmarking & evaluation scripts (Week 4) | Testing | |
+| **Ticket 16**| Business Impact & Cost Case slide prep | Judging Prep | |
+| **Ticket 17**| Demo Script & backup walkthrough video | Judging Prep | |
+| **Ticket 18**| Judge Q&A Playbook review & dry runs | Judging Prep | |
+
 ---
 
 ## 18. EVALUATION BENCHMARKS
