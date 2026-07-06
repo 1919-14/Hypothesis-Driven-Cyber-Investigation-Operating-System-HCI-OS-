@@ -508,3 +508,172 @@ Effective_Weight = Base_Weight × Analyst_Seniority_Score
 | Red Team Attacks Satisfied | 66/66 | All R1+R2+R3 |
 | Features Integrated | 15/15 | All features mapped |
 | ROI | ~20,000x | ₹100cr incident vs ₹0.5cr/year |
+
+---
+
+## 26. v3.3 FINAL COMPLIANCE — CORRECTIONS & NEW ADDITIONS
+> *Sourced from KAVACH_v3.3_FINAL_COMPLETE_TICKETS.md — the authoritative implementation spec*
+
+### 26a. Corrected Agent Count
+
+The definitive agent count is **13 agents (A1–A13)**. The v3.3 tickets explicitly state "13 agents" in the Ticket 0 header. Any earlier reference to "12 agents" was from a prior draft and is superseded by v3.3.
+
+> ⚠️ **MAJOR ARCHITECTURE DECISION (2026-07-07):** All agents are to be built as **REAL implementations**. The earlier "SIMULATE" designation for A5, A8, A9 is overridden. Only **A13 Federation** is explicitly simulated (two local processes). Everything else — including the GNN (A5), Critic (A8), and Dual-LLM Quarantine (A9) — will be attempted as real code. If scope constraints prevent a full implementation during the sprint, document it as a scope cut with a clear roadmap note — do NOT silently mock it.
+
+> ⚠️ **DATA BIAS WARNING:** Architecture data has been sourced from multiple AI systems and documents across multiple sessions. There may be subtle mismatches, contradictions, or hallucinated numbers (e.g. "12 agents" vs "13 agents"). **Always treat `KAVACH_v3.3_FINAL_COMPLETE_TICKETS.md` as the single source of truth.** Cross-check any number or design decision against that file before coding.
+
+| # | Agent | LLM? | Build Mode |
+|---|-------|-------|------------|
+| A1 | Ingestion & Trust | No | ✅ **REAL** (Ticket 8) |
+| A2 | Normalizer & Context | No | ✅ **REAL** (Ticket 2) |
+| A3 | Hash & Fingerprint Router | No | ✅ **REAL** (Ticket 3) |
+| A4 | Adaptive Anomaly Detector | No | ✅ **REAL** (Ticket 4) |
+| A5 | GNN Correlator (GAT + predict_next_hop) | No | ✅ **REAL** — real small GAT on seeded graph (Ticket 13) |
+| A6 | Attribution & RAG | LLM-1 | ✅ **REAL** (Ticket 5) |
+| A7 | SOAR & Planner | LLM-2 | ✅ **REAL** (Ticket 6) |
+| A8 | Critic / Skeptic | LLM-3 | ✅ **REAL** — real second LLM call, different system prompt (Ticket 13) |
+| A9 | Quarantine Verifier | LLM-4+5 | ✅ **REAL** — dual-LLM sandbox with two isolated instances (Ticket 13) |
+| A10 | Active Hunt | No | ✅ **REAL** — real VirusTotal API (Ticket 9) |
+| A11 | Behavioral Watchdog | No | ✅ **REAL** (Ticket 10) |
+| A12 | Audit, Memory & Learning | No | ✅ **REAL** (Ticket 7) |
+| A13 | Federation Agent | No | 🔁 **SIMULATED** — two local processes, STIX-shaped JSON (Ticket 11) |
+
+
+### 26b. GNN Architecture (3 types, not 12)
+
+All 3 GNN architectures run inside **Agent A5** only, using PyTorch Geometric:
+
+| GNN | Problem Solved | Graphs Used |
+|-----|---------------|-------------|
+| **GAT** (Graph Attention Network) | Which relationships matter more | Entity Graph + Threat Graph |
+| **TGN** (Temporal Graph Network) | How connections change over time | Evidence Graph + Entity Graph |
+| **GraphSAGE** | Characterize unseen nodes from neighborhood | Infrastructure Graph + Decision Graph |
+
+**Combined forward pass in A5:**
+1. GraphSAGE → handle new/unseen nodes → `node_embeddings_sage`
+2. GAT → attention-weighted embeddings + edge weights → `node_embeddings_gat` + `attention_weights` (used for UI explainability)
+3. TGN → temporal memory update → `node_embeddings_tgn` + `sequence_anomaly_scores`
+4. Fusion → `concat(sage, gat, tgn)` → linear projection → **256-dim final embedding** per node
+
+For the 30-day build: **real small GAT only** on a 25–40 node seeded graph. TGN and GraphSAGE documented as roadmap.
+
+### 26c. New Components Added in v3.3
+
+| Component | Location | Ticket | Description |
+|-----------|----------|--------|-------------|
+| **OT Context Builder** | `agents/a2_normalize.py` | 2 | `build_ot_context()` function; reads `can_reboot`, `can_interrupt`, `safety_critical` from `asset_inventory.json` |
+| **Indian Context Builder** | `agents/a2_normalize.py` | 2 | `build_indian_context()` — flags `exam_season`, `govt_year_end`, `election_period`, `holiday_period` |
+| **Cross-Attention Fusion** | `agents/a4_anomaly.py` | 4 | `nn.MultiheadAttention(embed_dim, num_heads=4)` over stacked signal vectors; weights exported to UI heatmap |
+| **Campaign Genome (sequence)** | `agents/a6_attribution.py` | 5 | Order-preserving sequence embedding + cosine similarity vs known campaigns (not plain dict lookup) |
+| **Counter-Evidence Collection** | `agents/a7_soar.py` | 6 | Populates `evidence_against` in Hypothesis; penalises confidence for whitelist/scanner matches |
+| **Trust-Weighted Feedback** | `agents/a12_audit.py` | 7 | `apply_human_correction()` with `SENIOR=0.9`, `JUNIOR=0.3`, `EXTERNAL=0.8`; consensus gate for high-impact corrections |
+| **Shadow Deployment Promotion Check** | `agents/a12_audit.py` | 7 | `should_promote_shadow_model()` — requires precision/recall/f1 ≥ 95% of live model before promotion |
+| **Federation PII Anonymizer** | `agents/a13_federation.py` | 11 | `anonymize_ioc()` strips `src_ip`, `user`, `asset_id`, `internal_domain`, `hostname`, `email` before any federation write |
+| **SD-5 Secrets/PII Scanner** | `agents/a7_soar.py` / pipeline | 12 | `scan_output()` regex scanner — blocks api_key, AWS keys, phone, email, passwords from leaving pipeline |
+| **Kill Switch Endpoint** | FastAPI app | 12 | `POST /emergency-stop` sets `AUTONOMY_FROZEN=True`; every autonomous action checks this flag first |
+| **1-hop Predictive Attack Topology** | `agents/a5_gnn.py` | 13 | `predict_next_hop(current_node, graph, gat_attention_weights, top_k=2)` — feeds into `predicted_next_moves` |
+| **🆕 Digital Twin Lite** | `agents/digital_twin.py` | 13.5 | `DigitalTwin` class with `_build_seeded_graph()`, `simulate_attack()`, `render_path()` — reuses Ticket 13 graph |
+| **CERT-In Report Template** | UI (Ticket 14) | 14 | Auto-drafted report on hypothesis confirmation — includes IOCs, timeline, DPDP field, 6-hr countdown |
+| **docs/** folder | repo root | 16–18 | `docs/business_impact.md`, `docs/demo_script.md`, `docs/qa_playbook.md` |
+
+### 26d. Corrected File/Folder Structure (v3.3)
+
+```
+hci_os/
+├── agents/
+│   ├── a1_ingest.py
+│   ├── a2_normalize.py         ← OT Context Builder + Indian Context
+│   ├── a3_fingerprint.py       ← 3-path router (Exact/Fuzzy/Novel)
+│   ├── a4_anomaly.py           ← Isolation Forest + LSTM-AE + Cross-Attention
+│   ├── a5_gnn.py               ← GAT (real, small) + predict_next_hop()
+│   ├── a6_attribution.py       ← RAG + Campaign Genome (sequence embedding)
+│   ├── a7_soar.py              ← Risk/Blast formulas + Counter-Evidence + Kill Switch check
+│   ├── a8_critic.py            ← Real second LLM call (different system prompt)
+│   ├── a9_quarantine.py        ← Diagram only (no live code)
+│   ├── a10_hunt.py             ← VirusTotal API + timeout/retry
+│   ├── a11_watchdog.py         ← Role profile checker
+│   ├── a12_audit.py            ← Append-only audit + trust-weighted feedback + shadow deploy
+│   ├── a13_federation.py       ← anonymize_ioc() + two-process simulation
+│   └── digital_twin.py         ← 🆕 DigitalTwin class (simulate_attack, render_path)
+├── objects/
+│   ├── evidence.py             ✅ DONE (Sujeet Jaiswal)
+│   ├── hypothesis.py           ✅ DONE (Sujeet Jaiswal)
+│   └── decision.py             ✅ DONE (Sujeet Jaiswal)
+├── stores/
+│   ├── redis_store.py
+│   ├── postgres_store.py
+│   ├── faiss_store.py
+│   ├── neo4j_store.py
+│   ├── es_store.py
+│   └── federation_store.py     ← JSON/Postgres store for anonymized IOCs
+├── pipeline/
+│   └── investigation_loop.py
+├── ui/                         ← React/Flask dashboard (Person C)
+├── benchmark/
+│   ├── benchmark.py
+│   └── report.py
+├── data/
+│   ├── asset_inventory.json    ← must include can_reboot, can_interrupt, safety_critical fields
+│   └── sample_logs.csv
+├── docs/
+│   ├── business_impact.md      ← Ticket 16
+│   ├── demo_script.md          ← Ticket 17
+│   └── qa_playbook.md          ← Ticket 18
+└── tests/
+    ├── test_objects.py          ✅ DONE — 13 passed
+    └── test_agents.py
+```
+
+### 26e. Ticket 1 Compliance Check — Evidence / Hypothesis / Decision
+
+| Criterion | Required | Implemented | Status |
+|-----------|---------|-------------|--------|
+| Pydantic v2 BaseModel | ✅ | ✅ | PASS |
+| SHA-256 validation (64-char hex) | ✅ | ✅ | PASS |
+| 256-dim embedding validation | ✅ | ✅ | PASS |
+| confidence in [0,1] | ✅ | ✅ | PASS |
+| `confidence_decay(hours)` method | ✅ | ✅ | PASS |
+| `to_json()` / `from_json()` | ✅ | ✅ | PASS |
+| Decision `compute_hash()` | ✅ | ✅ | PASS |
+| Decision `chain(prev)` | ✅ | ✅ | PASS |
+| Decision `create_correction()` | ✅ | ✅ | PASS |
+| Hypothesis `get_primary_hypothesis()` | ✅ | ✅ | PASS |
+| Hypothesis `add_timeline_event()` | ✅ | ✅ | PASS |
+| 12+ unit tests all passing | ✅ | ✅ 13 passed | PASS |
+| `WorldModel` sub-model | ✅ | ✅ | PASS |
+| `CompetingHypothesis` sub-model | ✅ | ✅ | PASS |
+| `PredictedMove` sub-model | ✅ | ✅ | PASS |
+
+**Ticket 1 verdict: ✅ FULLY COMPLIANT**
+
+### 26f. Key Architectural Rules (from v3.3 tickets)
+
+1. **OT SCADA force rule:** If `can_reboot=false` → always force HUMAN_GATE regardless of confidence.
+2. **Decision rule (exact):**
+   - `P(H1) > 0.70 AND P(H1) > 2×P(H2)` → AUTO-RESPOND
+   - `P(H1) > 0.50` → HUMAN_GATE
+   - else → MONITOR
+3. **Kill Switch:** `AUTONOMY_FROZEN` global flag. Every autonomous action in A7/A10/A13 must check this. No auto-release on timeout — fail-safe by design.
+4. **Federation:** `anonymize_ioc()` is the ONLY write path to the Federation Store — never write raw data directly.
+5. **SD-5 output judge:** `scan_output()` runs on every pipeline output before it reaches UI or external API.
+6. **Shadow deployment promotion:** `should_promote_shadow_model()` must return `True` (all metrics ≥ 95% of live model) before any shadow model replaces the live model.
+7. **Adaptive mode:** A4 has 3 modes controlled by config flag: `OBSERVE_ONLY` (Week 0–1) → `SUPERVISED_HYBRID` (Week 1–2) → `AUTONOMOUS` (Week 2+).
+8. **Campaign Genome:** Must use order-preserving sequence embedding + cosine similarity — NOT a plain dict lookup.
+
+### 26g. Updated Final Verified Component Counts (v3.3)
+
+| Category | Count | Details |
+|---------|-------|---------|
+| Total Agents | 13 | A1–A13 |
+| Agents Using LLMs | 5 | A6 (LLM-1), A7 (LLM-2), A8 (LLM-3), A9 (LLM-4+5) |
+| Agents with NO LLM | 8 | A1, A2, A3, A4, A5, A10, A11, A12, A13 |
+| LLM Instances | 5 | Llama 3.x 8B × 5 (1 standard, 1 LoRA JSON, 1 vanilla, 2 isolated) |
+| GNN Architectures | 3 | GAT, TGN, GraphSAGE (all in A5 via PyTorch Geometric) |
+| Knowledge Graphs | 5 | Entity, Infrastructure, Threat, Evidence, Decision |
+| Data Stores | 8 | Redis, PostgreSQL×3, Neo4j, FAISS, Elasticsearch, Federation Store |
+| Processing Paths | 3 | Exact (<2ms), Fuzzy (~16ms), Full Investigation (<1min) |
+| Self-Defense Layers | 9 | SD-0 to SD-7 + Kill Switch (SD-8) |
+| New in v3.3 | 5 | Digital Twin Lite, SD-5 scanner, Campaign Genome sequence, Shadow Promote Check, Federation PII anonymizer |
+| Red Team Attacks | 66/66 | All R1+R2+R3 solved |
+| Features Mapped | 15/15 | Including Digital Twin as Feature #5 |
+| ROI | ~20,000x | ₹100cr incident vs ₹0.5cr/year |

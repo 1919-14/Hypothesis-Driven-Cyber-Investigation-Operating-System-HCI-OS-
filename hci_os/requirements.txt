@@ -23,7 +23,7 @@ networkx==3.2.1
 
 # RAG & LLM
 langchain==0.1.0
-langchain-community==0.1.0
+langchain-community>=0.0.13
 sentence-transformers==2.3.1
 
 # API & Web

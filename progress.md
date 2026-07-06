@@ -212,4 +212,37 @@ ELSE                               -> MONITOR
 
 ---
 
+## [2026-07-07 00:25] — DECISION — REAL-First Architecture Strategy (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ LOCKED — Major architectural decision recorded
+
+**Decision:**
+All 13 agents (A1–A13) are to be built as **REAL implementations**. The original "SIMULATE" designations for A5 (GNN), A8 (Critic), and A9 (Dual-LLM Quarantine) are **overridden**.
+
+Only **A13 Federation** is explicitly simulated (two local Python processes exchanging STIX-shaped JSON).
+
+| Agent | Old Mode | New Mode |
+|-------|----------|----------|
+| A5 GNN Correlator | SIMULATE | ✅ REAL — small real GAT on seeded 25–40 node graph |
+| A8 Critic/Skeptic | SIMULATE | ✅ REAL — second LLM call with adversarial system prompt |
+| A9 Quarantine Verifier | SIMULATE (diagram only) | ✅ REAL — dual-LLM sandbox (two isolated instances) |
+| A13 Federation | SHOULD | 🔁 SIMULATED — two local processes only |
+
+**Protocol for scope cuts:**
+If any agent cannot be fully completed within sprint time, it must be:
+1. Documented explicitly as a scope cut in `progress.md`
+2. Marked with a `# SCOPE CUT` comment in the code
+3. Given a one-line roadmap description of what the full implementation would look like
+
+**Data Bias Warning (CRITICAL — logged permanently):**
+Architecture data has been sourced from multiple AI systems across multiple sessions. Known mismatches detected:
+- **Agent count:** Some docs say "12 agents", v3.3 tickets say "13 agents" — **13 is correct**
+- **LLM count:** Some docs say "3 agents with LLM", v3.3 says "5 instances across A6/A7/A8/A9" — **5 is correct**
+- **Simulation scope:** Earlier context said A9 is "diagram only" — **overridden, A9 is REAL**
+
+**Rule:** Always treat `KAVACH_v3.3_FINAL_COMPLETE_TICKETS.md` as the single source of truth for any implementation decision. Cross-check all numbers against that file before writing code.
+
+---
+
+
 
