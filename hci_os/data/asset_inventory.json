@@ -23,6 +23,18 @@
     "can_interrupt": true,
     "impact_if_compromised": "CRITICAL"
   },
+  "CBSE-AuthSvr-01": {
+    "ip": "203.94.1.30",
+    "type": "auth_server",
+    "criticality": "HIGH",
+    "mission": "student_authentication",
+    "software": ["OpenLDAP 2.5", "Kerberos 5"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "HIGH"
+  },
   "CBSE-OT-SCADA-01": {
     "ip": "10.0.2.10",
     "type": "scada_controller",
@@ -34,5 +46,101 @@
     "can_reboot": false,
     "can_interrupt": false,
     "impact_if_compromised": "CRITICAL"
+  },
+  "AIIMS-MRI-01": {
+    "ip": "10.10.1.50",
+    "type": "medical_device",
+    "criticality": "CRITICAL",
+    "mission": "mri_imaging",
+    "software": ["Siemens MRI Firmware 3.1"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "AIIMS-ICU-Monitor-01": {
+    "ip": "10.10.2.10",
+    "type": "icu_monitor",
+    "criticality": "CRITICAL",
+    "mission": "icu_patient_monitoring",
+    "software": ["Philips IntelliVue MX800"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "AIIMS-HIS-01": {
+    "ip": "10.10.3.10",
+    "type": "hospital_information_system",
+    "criticality": "HIGH",
+    "mission": "patient_records",
+    "software": ["HMIS 5.2"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": false,
+    "impact_if_compromised": "HIGH"
+  },
+  "POWERGRID-RTU-01": {
+    "ip": "10.20.1.10",
+    "type": "rtu",
+    "criticality": "CRITICAL",
+    "mission": "grid_control",
+    "software": ["ABB RTU560"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "POWERGRID-SCADA-01": {
+    "ip": "10.20.1.20",
+    "type": "scada_controller",
+    "criticality": "CRITICAL",
+    "mission": "power_distribution",
+    "software": ["GE Grid Solutions SCADA"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "RAILWAY-PLC-01": {
+    "ip": "10.30.1.10",
+    "type": "plc",
+    "criticality": "CRITICAL",
+    "mission": "train_signaling",
+    "software": ["Siemens S7-300"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "RAILWAY-Ticketing-01": {
+    "ip": "10.30.2.10",
+    "type": "ticketing_server",
+    "criticality": "MEDIUM",
+    "mission": "ticket_booking",
+    "software": ["IRCTC Portal 4.1"],
+    "internet_facing": true,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "NCIIPC-FW-01": {
+    "ip": "10.50.0.1",
+    "type": "firewall",
+    "criticality": "HIGH",
+    "mission": "perimeter_security",
+    "software": ["FortiGate 100F"],
+    "internet_facing": true,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": false,
+    "impact_if_compromised": "HIGH"
   }
 }

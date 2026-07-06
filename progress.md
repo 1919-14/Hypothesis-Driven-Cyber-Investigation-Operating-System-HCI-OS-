@@ -244,5 +244,53 @@ Architecture data has been sourced from multiple AI systems across multiple sess
 
 ---
 
+## [2026-07-07 01:18] — BUILD — TICKET 2 COMPLETE: A2 Normalizer & Context Agent (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS — 46/46 A2 tests + 13/13 Ticket 1 tests = **59/59 passed in 0.24s**
+
+**What was done:**
+- Implemented `hci_os/agents/a2_normalize.py` — full A2 Normalizer & Context Agent
+  - **Normalization:** Field-mapped ingestion for 5 source types (web_access_log, cicids_2017, windows_event, netflow, scada) + auto-detection by key inspection
+  - **NER:** Regex-based extraction of IPs, users, processes, domains, hashes from raw log text
+  - **Asset Lookup:** Reads `data/asset_inventory.json`, supports ID-based and IP-based lookups, defaults to MEDIUM/can_reboot=True for unknown assets
+  - **OT Context Builder:** `build_ot_context()` — 6 fields: protocol, device_type, safety_critical, can_interrupt, can_reboot, impact_if_compromised
+  - **Indian Context Builder:** `build_indian_context()` — 4 flags: exam_season, govt_year_end, election_period, holiday_period
+  - **SHA-256 Fingerprint:** `compute_content_fingerprint()` — canonical JSON → SHA-256 hex
+  - **Evidence Output:** Constructs validated Evidence via `model_validate()` with 256-dim zero-vector embedding placeholder
+  - **Batch + CSV:** `process_batch()` and `process_csv()` for multi-row processing with per-row error tolerance
+- Expanded `hci_os/data/asset_inventory.json` — 12 assets across IT, OT, Medical, and Railway domains:
+  - CBSE: WebSvr-01, DB-01, AuthSvr-01, OT-SCADA-01
+  - AIIMS: MRI-01, ICU-Monitor-01, HIS-01
+  - Power Grid: RTU-01, SCADA-01
+  - Railway: PLC-01, Ticketing-01
+  - NCIIPC: FW-01
+- Updated `hci_os/data/sample_logs.csv` — 8 CICIDS-2017 style rows covering diverse scenarios
+- Created `hci_os/tests/test_a2_normalize.py` — 46 unit tests across 8 test classes
+
+**Debug log:**
+- 🔧 Smoke test crash: Unicode arrow character `←` in print() — Windows cp1252 encoding. Fixed with ASCII `<--`.
+- 🔧 Serialization round-trip failure: `evidence.py` timestamp serializer appended `Z` to already-tz-aware datetime producing `+00:00Z` (invalid). Fixed: now normalizes `+00:00` suffix to `Z`.
+
+**Files created/modified:**
+- `hci_os/agents/a2_normalize.py` — ✅ Full implementation (overwrote stub)
+- `hci_os/data/asset_inventory.json` — ✅ Expanded to 12 assets
+- `hci_os/data/sample_logs.csv` — ✅ Updated with 8 test rows
+- `hci_os/tests/test_a2_normalize.py` — ✅ New (46 unit tests)
+- `hci_os/objects/evidence.py` — ✅ Fixed timestamp serializer bug (line 111-117)
+
+**Test result:**
+```
+59 passed in 0.24s  (46 A2 tests + 13 Ticket 1 tests) — zero warnings, zero failures
+```
+
+**Key design decisions:**
+- OT Context is attached to EVERY Evidence Object, even IT assets (protocol=None for IT). This ensures A7 can always check `can_reboot` without conditional logic.
+- Indian Context uses hardcoded month-based checks for hackathon — production would use Election Commission / CBSE / Govt calendar APIs.
+- Unknown assets log a WARNING but never crash — defensive design for production robustness.
+- Data storage note: When database storage is needed, MySQL will be used (per team decision), not PostgreSQL/SQLite.
+
+**Next step:** Ticket 3 — A3: Hash & Fingerprint Router (3-path router: Exact/Fuzzy/Novel)
+
+---
 
 
