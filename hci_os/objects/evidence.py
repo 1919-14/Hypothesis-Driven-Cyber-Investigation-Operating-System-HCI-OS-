@@ -110,4 +110,10 @@ class Evidence(BaseModel):
 
     @field_serializer('timestamp')
     def serialize_timestamp(self, v: datetime) -> str:
-        return v.isoformat() + "Z"
+        iso = v.isoformat()
+        # Normalize UTC offset representations to 'Z' suffix
+        if iso.endswith("+00:00"):
+            return iso[:-6] + "Z"
+        if v.tzinfo is None:
+            return iso + "Z"
+        return iso
