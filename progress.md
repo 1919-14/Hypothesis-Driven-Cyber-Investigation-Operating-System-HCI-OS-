@@ -293,4 +293,60 @@ Architecture data has been sourced from multiple AI systems across multiple sess
 
 ---
 
+## [2026-07-07 23:16] — BUILD — TICKET 3 COMPLETE: A3 Hash & Fingerprint Agent + 3-Path Router (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS — 32/32 A3 tests + 46 A2 tests + 13 Ticket 1 tests = **91/91 passed in 90.21s**
+
+**What was done:**
+
+### 1. `hci_os/stores/redis_store.py` — Decision Cache
+- Full Redis wrapper with `get()`, `set()`, `exists()`, `delete()`, `clear()`, `count()`
+- **TTL:** Configurable (default 30 days) — entries auto-evict after TTL
+- **Graceful fallback:** Auto-detects Redis unavailability and switches to in-memory dict with identical API. Logs a warning but never crashes.
+- Key format: `hcios:decision:<sha256_hex>`
+
+### 2. `hci_os/stores/faiss_store.py` — Vector Memory
+- FAISS IndexFlatIP wrapper for 256-dim behavior embedding search
+- **L2 normalization** on insert/query so inner product = cosine similarity
+- Operations: `add()`, `search()`, `save()`, `load()`, `reset()`
+- **Persistence:** `faiss.write_index` / `faiss.read_index` to/from `data/faiss_behavior.index`
+- Parallel metadata list stores evidence_id, fingerprint, criticality per vector
+- **NumPy fallback** if faiss-cpu is not installed
+
+### 3. `hci_os/agents/a3_fingerprint.py` — The 3-Path Router
+- **Path 1 (Exact):** SHA-256 lookup in Redis → cached Decision returned in <0.1ms
+- **Path 2 (Fuzzy):** FAISS cosine search ≥ 0.85 threshold → cached Decision with confidence adjusted ×0.95
+  - **Criticality check:** If matched evidence has different criticality than current → falls back to Path 3 (safety first)
+- **Path 3 (Novel):** No cache hit → passes Evidence to A4 (via callback or direct return)
+- **Structured logging:** Every routing decision logged as JSON with path, timing_ms, similarity_score, evidence_id, decision_id
+- **Stats:** `get_routing_stats()` returns aggregate cache hit rates and average timings per path
+- **Cache management:** `cache_decision(evidence, decision)` populates both Redis (Path 1) and FAISS (Path 2) in one call
+- **A4 callback:** Optional `a4_callback` function invoked on Path 3 for pipeline integration
+
+### 4. `hci_os/tests/test_a3_fingerprint.py` — 32 Unit Tests
+- 10 RedisStore tests (CRUD, TTL expiry, memory mode)
+- 10 FAISSStore tests (add, search, threshold, dimension validation, save/load, reset)
+- 12 A3Router tests (all 3 paths, confidence adjustment, criticality mismatch, logging, stats, callback)
+
+**Performance metrics (smoke test):**
+```
+Path 1 (Exact):  0.086ms   (target: <2ms)    ✅
+Path 2 (Fuzzy):  verified   (target: ~16ms)   ✅
+Path 3 (Novel):  0.097ms   (target: <1min)    ✅
+```
+
+**Files created/modified:**
+- `hci_os/stores/redis_store.py` — ✅ Full implementation (overwrote stub)
+- `hci_os/stores/faiss_store.py` — ✅ Full implementation (overwrote stub)
+- `hci_os/agents/a3_fingerprint.py` — ✅ Full implementation (overwrote stub)
+- `hci_os/tests/test_a3_fingerprint.py` — ✅ New (32 unit tests)
+
+**Test result:**
+```
+91 passed, 2 warnings in 90.21s  (32 A3 + 46 A2 + 13 T1) — zero failures, zero regressions
+```
+
+**Next step:** Ticket 4 — A4: Adaptive Anomaly Detector (Isolation Forest + LSTM-AE + Cross-Attention)
+
+---
 
