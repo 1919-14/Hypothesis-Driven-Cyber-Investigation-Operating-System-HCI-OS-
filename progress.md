@@ -350,3 +350,53 @@ Path 3 (Novel):  0.097ms   (target: <1min)    ✅
 
 ---
 
+
+## [2026-07-08 00:17] - BUILD - TICKET 4 COMPLETE: A4 Adaptive Anomaly Detector (Contributor: Sujeet Jaiswal)
+
+**Status:** SUCCESS - 72/72 A4 tests + 91 existing = **163/163 passed in 6.99s**
+
+### hci_os/agents/a4_anomaly.py - Full A4 Anomaly Detector (1268 lines)
+- **Feature Extraction:** extract_features() - 20-dim numeric vector from Evidence.normalized
+- **Isolation Forest** (scikit-learn, REAL): Trained on synthetic CICIDS-normal data (1000 samples)
+- **Temporal Detector (SCOPE CUT - LSTM-AE):** Welford online Z-score per asset_id (10-event warmup)
+- **Probabilistic Detector (SCOPE CUT - VAE):** Multivariate Gaussian Mahalanobis distance + epistemic uncertainty
+- **Dual Baseline:** combined = 0.4 x generic_CICIDS + 0.6 x org_specific (retrains every 100 samples)
+- **Behavior Embedding:** 256-dim 2-layer MLP, L2-normalized, written to Evidence
+- **OT Context:** can_reboot=False->1.3x, safety_critical->0.7x, CRITICAL->0.8x, HIGH->0.9x
+- **Cross-Attention (SCOPE CUT - numpy):** Pure numpy multi-head attention over 4 signals (dns/auth/process/network)
+- **Adaptive Mode:** HCI_OS_MODE env var -> OBSERVE_ONLY / SUPERVISED_HYBRID / AUTONOMOUS
+- **Uncertainty:** total = 0.5*epistemic + 0.5*aleatoric
+- **Effective Confidence:** (1 - total_uncertainty) x anomaly_score for A7 decision rule
+
+### Smoke Test Results
+`
+Benign:   score=0.316  eff_conf=0.208  anomalous=False  threshold=0.450 (ot_mult=0.9)
+Attack:   score=0.466  eff_conf=0.063  anomalous=True   threshold=0.400 (ot_mult=0.8)
+OT/SCADA: score=0.321  eff_conf=0.043  anomalous=False  threshold=0.650 (ot_mult=1.3)
+Embedding: dim=256, norm=1.0000
+`
+Attack scores HIGHER than benign. OT SCADA gets higher threshold.
+
+**Debug log:**
+- FIXED: test_similar_inputs_similar_embeddings failed - scalar multiples collapse to same L2 direction. Fixed with structurally distinct random vectors.
+- NOTE: PowerShell treats stderr INFO logs as NativeCommandError - not real error.
+
+**Scope cuts (all documented with SCOPE CUT comments in code):**
+1. LSTM-AE replaced with Z-score rolling baseline (full: 2-layer LSTM hidden=128)
+2. VAE replaced with Gaussian likelihood (full: torch VAE with KL divergence ELBO)
+3. Cross-Attention uses numpy (full: torch.nn.MultiheadAttention - avoids 2GB dependency)
+4. Behavior Embedding uses fixed random projection (full: A5 GNN encoder)
+
+**Files created/modified:**
+- hci_os/agents/a4_anomaly.py - DONE (1268 lines, full implementation)
+- hci_os/tests/test_a4_anomaly.py - DONE (72 unit tests, 17 test classes)
+- hci_os/requirements.txt - Updated (scikit-learn 1.9.0, numpy 2.4.6, scipy 1.17.1)
+
+**Packages installed:** scikit-learn==1.9.0, numpy==2.4.6, scipy==1.17.1, joblib==1.5.3
+
+**Test result:**
+163 passed in 6.99s (72 A4 + 32 A3 + 46 A2 + 13 T1) - zero failures, zero regressions
+
+**Next step:** Ticket 5 - A6: Attribution & RAG Agent (LLM-1, MITRE mapping, FAISS RAG)
+
+---
