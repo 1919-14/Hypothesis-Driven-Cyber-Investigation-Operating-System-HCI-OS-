@@ -400,3 +400,35 @@ Attack scores HIGHER than benign. OT SCADA gets higher threshold.
 **Next step:** Ticket 5 - A6: Attribution & RAG Agent (LLM-1, MITRE mapping, FAISS RAG)
 
 ---
+
+## [2026-07-09 00:10] - BUILD - TICKET 5 COMPLETE: A6 Attribution & RAG Agent (Contributor: V S S K Sai Narayana)
+
+**Status:** SUCCESS - 33/33 A6 tests + 163 existing = **196/196 passed in 156.58s**
+
+### hci_os/agents/a6_attribution.py - Full A6 Attribution Agent
+- **FAISS-Backed RAG Index:** Unified index built from MITRE STIX 2.1 (`mitre_stix.json`), NVD CVE JSON (`nvd_cves.json`), and CERT-In advisories (`cert_in_advisories.json`). Saves to `rag_index.faiss` and `rag_metadata.json`. Deterministic char-hashing fallback for quick embedding without external sentence-transformers.
+- **Top-K RAG Retrieval:** Queries the FAISS index with natural language constructed from Evidence's normalized values and context.
+- **LLM Call & Fallback:** Calls Llama 3.x 8B via local Ollama. Falls back gracefully to scenario-specific mock responses (e.g. CBSE `exam_portal` or Power Grid `power_management`) if Ollama is offline or times out (>10s).
+- **Trust-Weighted Conflict Resolution:** CERT-In (0.95), MITRE (0.90), NVD (0.85). If sources disagree on the attributing threat group, both primary and secondary groups are preserved with weighted normalized confidences.
+- **Campaign Genome Sequence Matching:** Matches observed TTP chains against known campaigns (from `known_campaigns.json`) using order-preserving sequence embeddings (deterministic position-specific random unit vectors) + cosine similarity.
+- **Predictive Next Moves:** Predicts the next TTP step and suggests preventive actions if the observed chain is a prefix of a matched known campaign.
+- **Hypothesis Linking:** Enriches and links the incoming Evidence ID to the Hypothesis's `supporting_evidence` list.
+- **Confidence Integration:** Updates the Hypothesis Object confidence using a weighted combination: `0.6 * attribution_confidence + 0.4 * genome_confidence`.
+
+### Files created/modified:
+- `hci_os/agents/a6_attribution.py` - DONE (Full implementation)
+- `hci_os/tests/test_a6_attribution.py` - DONE (33 unit tests covering embedding, genome sequence matching, trust resolution, LLM fallback, and pipeline)
+- `hci_os/data/mitre_stix.json` - Seeded MITRE ATT&CK techniques
+- `hci_os/data/nvd_cves.json` - Seeded NVD CVE info (incl. Log4Shell, EternalBlue)
+- `hci_os/data/cert_in_advisories.json` - Seeded India-specific CERT-In advisories
+- `hci_os/data/known_campaigns.json` - Seeded campaigns (APT41, SideWinder, Volt Typhoon)
+
+**Test result:**
+```
+196 passed, 2 warnings in 156.58s (33 A6 + 72 A4 + 32 A3 + 46 A2 + 13 T1) - zero failures, zero regressions
+```
+
+**Next step:** Ticket 6 - A7: SOAR & Planner Agent
+
+---
+
