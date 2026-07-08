@@ -12,12 +12,14 @@ import hashlib
 import json
 import logging
 import math
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from dotenv import load_dotenv
 
 from objects.evidence import Evidence
 from objects.hypothesis import Hypothesis, PredictedMove
@@ -25,13 +27,19 @@ from objects.hypothesis import Hypothesis, PredictedMove
 logger = logging.getLogger("A6_Attribution")
 logging.basicConfig(level=logging.INFO)
 
+# Load env variables
+load_dotenv()
+
 _DATA = Path(__file__).parent.parent / "data"
 TRUST = {"CERT-In": 0.95, "MITRE": 0.90, "NVD": 0.85}
 W_ATTRIBUTION, W_GENOME = 0.6, 0.4
 GENOME_THRESHOLD = 0.70
 GENOME_DIM = 64
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_TIMEOUT = 10
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "YOUR_GROQ_API_KEY_HERE")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_TIMEOUT = 10
 
 # ── RAG Index ─────────────────────────────────────────────────────────────────
 
@@ -233,6 +241,11 @@ _MOCKS = {
 
 
 def _call_llm(evidence: Evidence, docs: List[Dict]) -> Dict:
+    # If the API key is not set or is still the placeholder, fall back directly
+    if not GROQ_API_KEY or GROQ_API_KEY == "YOUR_GROQ_API_KEY_HERE":
+        logger.warning("A6: Groq API Key not configured (using placeholder) — falling back to mock response")
+        return _get_mock_response(evidence)
+
     snippets = [
         f"[{d.get('source')} trust={d.get('trust_weight',0.85):.2f}] "
         f"{d.get('name', d.get('title',''))}: {d.get('description','')[:180]}"
@@ -254,23 +267,41 @@ def _call_llm(evidence: Evidence, docs: List[Dict]) -> Dict:
     try:
         import urllib.request
         payload = json.dumps({
-            "model": "llama3",
-            "prompt": f"<|system|>{sys_p}<|user|>{usr_p}<|assistant|>",
-            "stream": False,
-            "options": {"temperature": 0.1, "num_predict": 512},
+            "model": GROQ_MODEL,
+            "messages": [
+                {"role": "system", "content": sys_p},
+                {"role": "user", "content": usr_p}
+            ],
+            "temperature": 0.1,
+            "max_tokens": 512,
+            "response_format": {"type": "json_object"}
         }).encode()
-        req = urllib.request.Request(OLLAMA_URL, data=payload,
-                                     headers={"Content-Type": "application/json"}, method="POST")
-        with urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT) as r:
-            raw = json.loads(r.read()).get("response", "")
+        
+        req = urllib.request.Request(
+            GROQ_URL, 
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {GROQ_API_KEY}"
+            }, 
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=GROQ_TIMEOUT) as r:
+            res = json.loads(r.read())
+            raw = res["choices"][0]["message"]["content"]
+            
         s, e = raw.find("{"), raw.rfind("}") + 1
         if s >= 0 and e > s:
             parsed = json.loads(raw[s:e])
             if "mitre_chain" in parsed and "confidence" in parsed:
                 return parsed
     except Exception as exc:
-        logger.warning("A6: LLM call failed (%s) — mock fallback", exc)
+        logger.warning("A6: Groq LLM call failed (%s) — mock fallback", exc)
 
+    return _get_mock_response(evidence)
+
+
+def _get_mock_response(evidence: Evidence) -> Dict:
     mission = evidence.context.get("mission", "")
     for key, mock in _MOCKS.items():
         if key in mission:
