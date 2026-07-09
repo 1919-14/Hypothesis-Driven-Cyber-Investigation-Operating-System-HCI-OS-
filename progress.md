@@ -525,3 +525,36 @@ ecall_hypotheses() lookup supporting keyword matching over goal, tags, mission i
 
 
 
+
+---
+
+## [2026-07-10 02:25] - BUILD - TICKET 9 COMPLETE: A10 Active Hunt Agent (Contributor: V S S K Sai Narayana)
+
+**Status:** SUCCESS - 61/61 A10 tests + 229 existing = **290/290 passed in 6.18s** (for the selected test group)
+
+### hci_os/agents/a10_hunt.py - Full A10 Active Hunt Agent
+- **Trigger Guard:** Checks if incoming `anomaly_score > 0.7` and queries open hypotheses list/cognitive memory to prevent redundant hunt triggering on active investigations.
+- **Entity Extraction:** Uses prioritized regex patterns to scan incoming Evidence (Hashes > IPs > Domains > URLs). Filters out RFC 1918 private IPs and localhost loopbacks. Deduplicates results.
+- **VirusTotal Integration:** Connects to VirusTotal v3 API. Features a thread-safe sliding window rate limiter (4 req/min), 10s request timeout, and 3x exponential backoff retry.
+- **Shodan Integration:** Optional IP host lookup when SHODAN_API_KEY is defined; falls back to structured mocks with roadmap logging when missing.
+- **Hunt Caching:** Key-value store saved in `data/hunt_cache.json` with 24-hour expiration TTL to prevent duplicate lookups.
+- **Circuit Breaker:** Automatically trips after 3 consecutive request failures, enforcing a strict 60-second cooling window before retrying.
+- **Output & Confidence Boost:** Enriches target Hypothesis with a linear confidence boost: `boost = 0.05 + 0.10 * hunt_score` (yielding values between +0.05 and +0.15) clamped to a maximum of 1.0, and appends the new hunt Evidence ID to the Hypothesis's `supporting_evidence`.
+
+### Gap Fixes Applied:
+| Gap | Fix |
+|-----|-----|
+| #1 Mock response undefined | Predefined `MOCK_VT_RESPONSE` & `MOCK_SHODAN_RESPONSE` structures used if API keys are missing. |
+| #2 No entities extracted | Skip hunt early, log a structured warning, and return skip metadata rather than failing silently. |
+| #3 Cooling‑off window unspecified | Explicitly implemented `CB_COOLING_SECS = 60` for the circuit breaker. |
+| #4 Confidence boost formula ambiguous | Implemented precise linear boost mapping: `boost = 0.05 + 0.10 * hunt_score`. |
+| #5 No logging | Standardized `logger.info`, `logger.warning`, and `logger.error` statements throughout the agent. |
+
+### Files created/modified:
+- `hci_os/agents/a10_hunt.py` - DONE (Full Active Hunt Agent implementation)
+- `hci_os/tests/test_a10_hunt.py` - DONE (61 comprehensive unit tests covering all edge cases)
+
+**Test result:**
+```
+290 passed in 6.18s (61 A10 + 64 A1 + 47 A7 + 72 A4 + 46 A2) - zero failures, zero regressions
+```
