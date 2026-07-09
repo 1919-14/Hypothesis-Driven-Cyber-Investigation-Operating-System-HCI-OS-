@@ -1,0 +1,13 @@
+{
+  "whitelisted_asset_ids": [
+    "NCIIPC-FW-01",
+    "RAILWAY-Ticketing-01"
+  ],
+  "whitelisted_ips": [
+    "10.50.0.1",
+    "10.99.0.1",
+    "127.0.0.1",
+    "::1"
+  ],
+  "note": "Assets/IPs here suppress automatic action — confidence is penalised by 0.80x"
+}

@@ -1,0 +1,13 @@
+{
+  "known_scanner_ips": [
+    "192.168.100.10",
+    "192.168.100.11",
+    "10.99.1.50",
+    "10.99.1.51",
+    "172.31.255.254"
+  ],
+  "known_scanner_subnets": [
+    "192.168.200.0/24"
+  ],
+  "note": "IPs from known security scanners (Qualys, Tenable, internal RedTeam). Confidence penalised by 0.85x"
+}
