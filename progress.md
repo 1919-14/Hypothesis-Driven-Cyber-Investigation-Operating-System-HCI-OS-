@@ -432,3 +432,35 @@ Attack scores HIGHER than benign. OT SCADA gets higher threshold.
 
 ---
 
+## [2026-07-10 00:15] - BUILD - TICKET 6 COMPLETE: A7 SOAR & Planner Agent (Contributor: V S S K Sai Narayana)
+
+**Status:** SUCCESS - 47/47 A7 tests + 196 existing = **243/243 passed in 97.38s**
+
+### hci_os/agents/a7_soar.py - Full A7 SOAR & Planner Agent
+- **Risk Score Calculation:** Risk = Likelihood (A4 anomaly score) × Impact (criticality from asset log) × Exposure (internet_facing) × Confidence.
+- **Blast Radius Calculation:** Graph path propagation using BFS on static graph adjacency list derived from `asset_graph.json`, summing `Reachability × Criticality × Propagation_Probability`, capped at 1.0.
+- **Bayesian Competing Hypothesis Update:** P(H1|E) updated with support-evidence density and normalized across alternate hypotheses and a benign null-hypothesis.
+- **Decision Engine & World Model Constraints:** Enforces `MONITOR`, `HUMAN_GATE`, or `AUTO_RESPOND` decisions. Forces `HUMAN_GATE` if `can_reboot=False`, `safety_critical=True`, or if the industry context matches life-safety fields (healthcare, grid, railway) or if the asset is unknown.
+- **Counter-evidence Engine (R3 #48):** Collects counter-evidence via 5 checks (whitelist, scanner IP, valid TLS cert, red-team exercise, patch window) and records details in `hypothesis.contradicting_evidence` while penalizing confidence.
+- **Mock SOAR Playbooks:** Logs actions (`ISOLATE_HOST`, `BLOCK_IP`, `REVOKE_SESSION`, `NOTIFY_SOC`) for demonstration purposes.
+- **Decision Chain Link:** Emits versioned, auditable `Decision` objects linked via SHA-256 hashes against prior actions.
+
+### Regression Fix in A6:
+- Fixed a pre-existing `IndexError` in `a6_attribution.py` RAG retrieval by adding a list bounds guard when fetching metadata.
+
+### Files created/modified:
+- `hci_os/agents/a7_soar.py` - DONE (Full implementation)
+- `hci_os/tests/test_a7_soar.py` - DONE (47 unit tests covering risk, blast radius propagation, Bayesian logic, counter-evidence, decision rules, and pipeline)
+- `hci_os/data/asset_graph.json` - Seeded static asset graph nodes and weights
+- `hci_os/data/whitelist.json` - Seeded whitelisted asset IDs and IPs
+- `hci_os/data/known_scanner_ips.json` - Seeded known scanner IPs
+- `hci_os/agents/a6_attribution.py` - Updated (Bounds check fix in `nearest_neighbors`)
+
+**Test result:**
+```
+243 passed, 2 warnings in 97.38s (47 A7 + 33 A6 + 72 A4 + 32 A3 + 46 A2 + 13 T1) - zero failures, zero regressions
+```
+
+**Next step:** Ticket 7 - A12: Audit, Memory & Learning Agent
+
+
