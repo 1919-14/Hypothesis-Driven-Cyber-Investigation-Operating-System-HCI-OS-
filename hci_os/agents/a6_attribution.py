@@ -139,7 +139,7 @@ def retrieve(evidence: Evidence, index, metadata: List[Dict], k: int = 5):
     D, I = index.search(qv, min(k, index.ntotal))
     results = []
     for idx, sim in zip(I[0], D[0]):
-        if idx >= 0:
+        if idx >= 0 and idx < len(metadata):
             doc = dict(metadata[idx])
             doc["similarity_score"] = float(sim)
             results.append(doc)

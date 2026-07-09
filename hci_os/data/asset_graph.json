@@ -1,0 +1,30 @@
+{
+  "nodes": [
+    {"id": "CBSE-WebSvr-01",       "criticality": 0.75, "label": "CBSE Web Server"},
+    {"id": "CBSE-AuthSvr-01",       "criticality": 0.75, "label": "CBSE Auth Server"},
+    {"id": "CBSE-DB-01",            "criticality": 1.00, "label": "CBSE Student DB"},
+    {"id": "CBSE-OT-SCADA-01",      "criticality": 1.00, "label": "CBSE SCADA Controller"},
+    {"id": "AIIMS-MRI-01",          "criticality": 1.00, "label": "AIIMS MRI Machine"},
+    {"id": "AIIMS-ICU-Monitor-01",  "criticality": 1.00, "label": "AIIMS ICU Monitor"},
+    {"id": "AIIMS-HIS-01",          "criticality": 0.75, "label": "AIIMS HIS"},
+    {"id": "POWERGRID-RTU-01",      "criticality": 1.00, "label": "PowerGrid RTU"},
+    {"id": "POWERGRID-SCADA-01",    "criticality": 1.00, "label": "PowerGrid SCADA"},
+    {"id": "RAILWAY-PLC-01",        "criticality": 1.00, "label": "Railway PLC"},
+    {"id": "RAILWAY-Ticketing-01",  "criticality": 0.50, "label": "Railway Ticketing"},
+    {"id": "NCIIPC-FW-01",          "criticality": 0.75, "label": "NCIIPC Firewall"}
+  ],
+  "edges": [
+    {"from": "CBSE-WebSvr-01",      "to": "CBSE-AuthSvr-01",  "weight": 0.85, "protocol": "LDAP"},
+    {"from": "CBSE-WebSvr-01",      "to": "CBSE-DB-01",       "weight": 0.70, "protocol": "MySQL"},
+    {"from": "CBSE-AuthSvr-01",     "to": "CBSE-DB-01",       "weight": 0.80, "protocol": "MySQL"},
+    {"from": "CBSE-WebSvr-01",      "to": "NCIIPC-FW-01",     "weight": 0.40, "protocol": "HTTP"},
+    {"from": "NCIIPC-FW-01",        "to": "CBSE-OT-SCADA-01", "weight": 0.30, "protocol": "Modbus"},
+    {"from": "AIIMS-HIS-01",        "to": "AIIMS-MRI-01",     "weight": 0.60, "protocol": "HL7"},
+    {"from": "AIIMS-HIS-01",        "to": "AIIMS-ICU-Monitor-01", "weight": 0.55, "protocol": "HL7"},
+    {"from": "NCIIPC-FW-01",        "to": "AIIMS-HIS-01",     "weight": 0.35, "protocol": "HTTPS"},
+    {"from": "POWERGRID-SCADA-01",  "to": "POWERGRID-RTU-01", "weight": 0.90, "protocol": "DNP3"},
+    {"from": "NCIIPC-FW-01",        "to": "POWERGRID-SCADA-01","weight": 0.25, "protocol": "IEC104"},
+    {"from": "RAILWAY-Ticketing-01","to": "RAILWAY-PLC-01",   "weight": 0.20, "protocol": "Modbus"},
+    {"from": "NCIIPC-FW-01",        "to": "RAILWAY-Ticketing-01","weight": 0.50, "protocol": "HTTPS"}
+  ]
+}
