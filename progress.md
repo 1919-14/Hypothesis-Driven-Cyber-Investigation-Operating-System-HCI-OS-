@@ -558,3 +558,76 @@ ecall_hypotheses() lookup supporting keyword matching over goal, tags, mission i
 ```
 290 passed in 6.18s (61 A10 + 64 A1 + 47 A7 + 72 A4 + 46 A2) - zero failures, zero regressions
 ```
+---
+
+## [2026-07-11 13:20] - BUILD - TICKET 10 COMPLETE: A11 Behavioral Watchdog Agent (Contributor: V S S K Sai Narayana)
+
+**Status:** SUCCESS - 49/49 A11 tests + 290 existing = **339/339 passed in 13.10s**
+
+### hci_os/agents/a11_watchdog.py - Full A11 Behavioral Watchdog Agent
+- **Profiles Management:** Role profiles for agents A1–A11 defined in `data/agent_profiles.json`. If missing, auto-writes defaults on import.
+- **Output Type Check:** Validates that output type matching `type(output).__name__` is allowed and not forbidden (raises `CRITICAL` for forbidden `Decision` or `Hypothesis` outputs, and `HIGH` otherwise).
+- **Schema Validation:** Validates output dicts/objects against Pydantic schemas defined in the profile (e.g. `Evidence`, `Hypothesis`, `Decision`). Failures raise a `WARN` violation.
+- **Rate Limit Enforcement:** Sliding-window rate limiter utilizing double-ended queue. Exceeding max requests per minute raises `HIGH` violation.
+- **Forbidden Actions:** Compares invoked action against forbidden list. Match raises `CRITICAL` violation.
+- **Forbidden Paths (Gap #2):** Compares accessed file paths against profile's `forbidden_paths`. Match raises `CRITICAL` violation.
+- **Agent Suspension (Gap #3):** Suspending an agent immediately writes the status to `data/watchdog_suspensions.json`. Restored from disk upon module load/restart. Suspended agents skip execution and return fallback input.
+- **Self-Protection (Gap #1):** Implemented `health_check()` to verify profiles, log-dir writability, suspension file health, and ensures A11 can never be suspended. Uses an independent file handler/logger.
+
+### Gap Fixes Applied:
+| Gap | Fix |
+|-----|-----|
+| #1 Watchdog self-protection | `health_check()` verification API + A11 cannot self-suspend + independent logger handler. |
+| #2 File path violations | Added `forbidden_paths` validation to check path accesses with cross-platform normalization. |
+| #3 Suspension persistence | Persistent suspensions saved to disk `watchdog_suspensions.json` and reloaded on module import. |
+
+### Files created/modified:
+- `hci_os/agents/a11_watchdog.py` - DONE (Full Behavioral Watchdog implementation)
+- `hci_os/data/agent_profiles.json` - DONE (Role profiles definitions)
+- `hci_os/tests/test_a11_watchdog.py` - DONE (49 comprehensive unit tests)
+
+**Test result:**
+```
+339 passed in 13.10s (49 A11 + 61 A10 + 64 A1 + 47 A7 + 72 A4 + 46 A2) - zero failures, zero regressions
+```
+
+---
+
+## [2026-07-11 13:35] - BUILD - TICKET 11 COMPLETE: A13 Federation Agent (Contributor: V S S K Sai Narayana)
+
+**Status:** SUCCESS - 46/46 A13 tests + 339 existing = **385/385 passed in 24.43s**
+
+### hci_os/stores/federation_store.py — Federation Store (DS7)
+- **STIX-2.1 Builder:** Generates indicators with all required fields: `id`, `type="indicator"`, `spec_version="2.1"`, `created`, `modified`, `name`, `pattern`, `pattern_type`, `valid_from`, `confidence`, `kill_chain_phases`, `labels`, `external_references`.
+- **Pattern Support:** IP (`[ipv4-addr:value=...]`), domain (`[domain-name:value=...]`), SHA-256 and MD5 hashes, and URL patterns.
+- **Atomic File Writes:** Uses `tempfile` + `os.replace` for concurrency-safe writes preventing corruption during two-process simulation.
+- **TTL Enforcement:** Indicators older than 7 days are filtered on every read; `purge_expired()` actively cleans the store.
+- **Gap #2 Conflict Resolution:** `add_indicator()` silently rejects any indicator with `confidence ≤ 0.85`.
+- **Gap #3 Store Init:** `_ensure_store()` auto-creates an empty STIX bundle JSON if the file is missing.
+
+### hci_os/agents/a13_federation.py — Federation Agent (A13)
+- **Trigger Check:** `should_share(hypothesis)` returns True when `hypothesis.confidence > 0.85`.
+- **Anonymizer:** `anonymize_ioc()` scans all Evidence values to extract public IPs, hashes, and domains. Private IPs (RFC 1918) are excluded. PII keys are omitted from the shared output.
+- **Gap #1 Missing Data Fallback:** Returns `None` and skips publishing if no public IOCs are found.
+- **Gap #4 Org Labeling:** `HCI_OS_ORG_ID` environment variable used to label all published indicators.
+- **Gap #5 Confidence Clamping:** `apply_boost()` applies `min(confidence + boost, 1.0)` to prevent over-boosting.
+- **Boost Formula:** `boost = min(0.10 + 0.05 * (len(matches) - 1), 0.15)`: +0.10 for 1 match, +0.15 for 2+ matches.
+
+### Gap Fixes Applied:
+| Gap | Fix |
+|-----|-----|
+| #1 Missing data fallback | `anonymize_ioc()` returns `None` if no IOCs; publisher skips with `no_shareable_iocs` reason. |
+| #2 Conflict resolution | `add_indicator()` rejects confidence ≤ 0.85; only confirmed malicious intel is stored. |
+| #3 Store initialization | `_ensure_store()` initializes empty STIX bundle on first run. |
+| #4 Org labeling | `HCI_OS_ORG_ID` env var used in `external_references.source_name` of all STIX indicators. |
+| #5 Confidence clamping | `apply_boost()` clamps result: `min(hyp.confidence + boost, 1.0)`. |
+
+### Files created/modified:
+- `hci_os/stores/federation_store.py` - DONE (Full STIX-2.1 Federation Store)
+- `hci_os/agents/a13_federation.py` - DONE (Full Federation Agent implementation)
+- `hci_os/tests/test_a13_federation.py` - DONE (46 comprehensive unit tests)
+
+**Test result:**
+```
+385 passed in 24.43s (46 A13 + 49 A11 + 61 A10 + 64 A1 + 47 A7 + 72 A4 + 46 A2) - zero failures, zero regressions
+```
