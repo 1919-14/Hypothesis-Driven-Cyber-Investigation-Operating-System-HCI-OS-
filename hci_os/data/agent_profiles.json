@@ -1,0 +1,112 @@
+[
+  {
+    "agent_id": "A1",
+    "display_name": "Ingestion & Trust Agent",
+    "allowed_output_types": ["dict"],
+    "forbidden_output_types": ["Evidence", "Hypothesis", "Decision"],
+    "max_calls_per_minute": 600,
+    "expected_output_schema": "dict",
+    "forbidden_actions": ["write_to_audit", "execute_playbook", "call_external_api"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/cognitive_memory.jsonl", "data/shadow_results.json"]
+  },
+  {
+    "agent_id": "A2",
+    "display_name": "Normalization Agent",
+    "allowed_output_types": ["Evidence", "dict"],
+    "forbidden_output_types": ["Hypothesis", "Decision"],
+    "max_calls_per_minute": 600,
+    "expected_output_schema": "Evidence",
+    "forbidden_actions": ["write_to_audit", "execute_playbook", "call_external_api"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/cognitive_memory.jsonl", "data/quarantine.jsonl"]
+  },
+  {
+    "agent_id": "A3",
+    "display_name": "Fingerprint & Fast-Path Agent",
+    "allowed_output_types": ["Evidence", "Decision", "dict"],
+    "forbidden_output_types": ["Hypothesis"],
+    "max_calls_per_minute": 600,
+    "expected_output_schema": "Evidence",
+    "forbidden_actions": ["write_to_audit", "execute_playbook", "call_external_api"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/cognitive_memory.jsonl"]
+  },
+  {
+    "agent_id": "A4",
+    "display_name": "Anomaly Detection Agent",
+    "allowed_output_types": ["Evidence", "dict"],
+    "forbidden_output_types": ["Decision", "Hypothesis"],
+    "max_calls_per_minute": 300,
+    "expected_output_schema": "Evidence",
+    "forbidden_actions": ["write_to_audit", "execute_playbook", "call_external_api"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/cognitive_memory.jsonl", "data/shadow_results.json"]
+  },
+  {
+    "agent_id": "A5",
+    "display_name": "GNN Correlation Agent",
+    "allowed_output_types": ["Evidence", "dict"],
+    "forbidden_output_types": ["Decision", "Hypothesis"],
+    "max_calls_per_minute": 300,
+    "expected_output_schema": "Evidence",
+    "forbidden_actions": ["write_to_audit", "execute_playbook", "call_external_api"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/cognitive_memory.jsonl"]
+  },
+  {
+    "agent_id": "A6",
+    "display_name": "RAG Attribution Agent",
+    "allowed_output_types": ["Hypothesis", "dict"],
+    "forbidden_output_types": ["Decision"],
+    "max_calls_per_minute": 60,
+    "expected_output_schema": "Hypothesis",
+    "forbidden_actions": ["execute_playbook", "write_to_audit"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/watchdog_log.jsonl"]
+  },
+  {
+    "agent_id": "A7",
+    "display_name": "SOAR & Decision Agent",
+    "allowed_output_types": ["Decision", "dict"],
+    "forbidden_output_types": ["Hypothesis"],
+    "max_calls_per_minute": 60,
+    "expected_output_schema": "Decision",
+    "forbidden_actions": ["call_external_api"],
+    "forbidden_paths": ["data/cognitive_memory.jsonl", "data/hunt_cache.json"]
+  },
+  {
+    "agent_id": "A8",
+    "display_name": "Critic & Challenge Agent",
+    "allowed_output_types": ["Hypothesis", "dict"],
+    "forbidden_output_types": ["Evidence", "Decision"],
+    "max_calls_per_minute": 60,
+    "expected_output_schema": "Hypothesis",
+    "forbidden_actions": ["write_to_audit", "execute_playbook", "call_external_api"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/hunt_cache.json"]
+  },
+  {
+    "agent_id": "A9",
+    "display_name": "Quarantine Agent",
+    "allowed_output_types": ["dict"],
+    "forbidden_output_types": ["Evidence", "Hypothesis", "Decision"],
+    "max_calls_per_minute": 600,
+    "expected_output_schema": "dict",
+    "forbidden_actions": ["execute_playbook", "call_external_api"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/cognitive_memory.jsonl"]
+  },
+  {
+    "agent_id": "A10",
+    "display_name": "Active Hunt Agent",
+    "allowed_output_types": ["Evidence", "dict"],
+    "forbidden_output_types": ["Decision"],
+    "max_calls_per_minute": 60,
+    "expected_output_schema": "dict",
+    "forbidden_actions": ["execute_playbook", "write_to_audit"],
+    "forbidden_paths": ["data/audit_log.jsonl", "data/cognitive_memory.jsonl"]
+  },
+  {
+    "agent_id": "A11",
+    "display_name": "Behavioral Watchdog (self)",
+    "allowed_output_types": ["dict"],
+    "forbidden_output_types": ["Hypothesis", "Decision"],
+    "max_calls_per_minute": 6000,
+    "expected_output_schema": "dict",
+    "forbidden_actions": [],
+    "forbidden_paths": []
+  }
+]
