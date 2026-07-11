@@ -815,6 +815,178 @@ class A12AuditAgent:
 
 
 # =============================================================================
+# SD-7: FORENSIC REJECTION LOG (Self-Defense Audit Chain)
+# =============================================================================
+
+SD_LOG_PATH: Path = _DATA_DIR / "sd_log.jsonl"
+
+
+def _get_last_sd_hash() -> Optional[str]:
+    """Return the sd_chain_hash of the last SD log entry, or None."""
+    entries = _read_jsonl(SD_LOG_PATH)
+    if entries:
+        return entries[-1].get("sd_chain_hash")
+    return None
+
+
+def log_rejection(
+    agent_id: str,
+    violation_type: str,
+    reason: str,
+    input_data: Any = None,
+) -> str:
+    """
+    SD-7: Log a self-defense rejection event to the immutable sd_log.jsonl chain.
+
+    Every rejection (SD-0 through SD-6) is recorded here with:
+      - sd_chain_prev: hash of the previous SD log entry (immutable chain)
+      - sd_chain_hash: hash of this entry
+      - input_hash: SHA-256 of the input data (for traceability without leaking data)
+
+    Args:
+        agent_id:       Which agent triggered the rejection.
+        violation_type: e.g. "quarantined_input", "write_auth_failure", "pii_leak",
+                        "circuit_open", "kill_switch_blocked", "output_judge_violation".
+        reason:         Human-readable explanation.
+        input_data:     Raw input (hashed, never stored as plain text).
+
+    Returns:
+        sd_chain_hash of the newly appended entry.
+    """
+    _ensure_data_dir()
+
+    # Hash the input for traceability (never store raw input in audit log)
+    if input_data is not None:
+        raw_bytes = json.dumps(input_data, default=str, sort_keys=True).encode()
+        input_hash = hashlib.sha256(raw_bytes).hexdigest()
+    else:
+        input_hash = None
+
+    prev_hash = _get_last_sd_hash()
+
+    entry: Dict[str, Any] = {
+        "sd_log_id":      str(uuid.uuid4()),
+        "stored_at":      datetime.now(timezone.utc).isoformat() + "Z",
+        "sd_layer":       "SD-7",
+        "agent_id":       agent_id,
+        "violation_type": violation_type,
+        "reason":         reason,
+        "input_hash":     input_hash,
+        "sd_chain_prev":  prev_hash,
+    }
+
+    # Compute tamper-evident hash of this entry (excluding sd_chain_hash itself)
+    canonical = json.dumps(
+        {k: v for k, v in entry.items() if k != "sd_chain_hash"},
+        sort_keys=True, default=str,
+    )
+    entry["sd_chain_hash"] = hashlib.sha256(canonical.encode()).hexdigest()
+
+    _atomic_append(SD_LOG_PATH, json.dumps(entry, default=str))
+
+    logger.info(
+        "A12 SD-7: logged rejection agent=%s type=%s hash=%s...",
+        agent_id, violation_type, entry["sd_chain_hash"][:12],
+    )
+    return entry["sd_chain_hash"]
+
+
+def verify_sd_chain(sd_log_path: Optional[Path] = None) -> Dict[str, Any]:
+    """
+    SD-7 Gap #2: Verify the integrity of the self-defense rejection log chain.
+
+    Reads every SD log entry, recomputes hashes, and checks both:
+      1. Each entry's sd_chain_hash matches recomputed hash.
+      2. Each entry's sd_chain_prev matches previous entry's sd_chain_hash.
+
+    Returns:
+        {
+          "valid": bool,
+          "entries_checked": int,
+          "first_tampered_index": int | None,
+          "message": str,
+        }
+    """
+    path = sd_log_path or SD_LOG_PATH
+    entries = _read_jsonl(path)
+
+    if not entries:
+        return {
+            "valid": True,
+            "entries_checked": 0,
+            "first_tampered_index": None,
+            "message": "SD log is empty — chain trivially valid.",
+        }
+
+    prev_hash: Optional[str] = None
+    for idx, entry in enumerate(entries):
+        stored_hash = entry.get("sd_chain_hash")
+        data = {k: v for k, v in entry.items() if k != "sd_chain_hash"}
+        recomputed = hashlib.sha256(
+            json.dumps(data, sort_keys=True, default=str).encode()
+        ).hexdigest()
+
+        if stored_hash != recomputed:
+            msg = (
+                f"TAMPERED: SD entry {idx} (sd_log_id={entry.get('sd_log_id', '?')}) "
+                f"hash mismatch: stored={stored_hash} recomputed={recomputed}"
+            )
+            logger.error("A12 verify_sd_chain: %s", msg)
+            return {
+                "valid": False,
+                "entries_checked": idx + 1,
+                "first_tampered_index": idx,
+                "message": msg,
+            }
+
+        chain_prev = entry.get("sd_chain_prev")
+        if chain_prev != prev_hash:
+            msg = (
+                f"BROKEN CHAIN: SD entry {idx} sd_chain_prev={chain_prev} "
+                f"but previous sd_chain_hash={prev_hash}"
+            )
+            logger.error("A12 verify_sd_chain: %s", msg)
+            return {
+                "valid": False,
+                "entries_checked": idx + 1,
+                "first_tampered_index": idx,
+                "message": msg,
+            }
+
+        prev_hash = stored_hash
+
+    msg = f"SD chain verified: {len(entries)} entries, all hashes match."
+    logger.info("A12 verify_sd_chain: %s", msg)
+    return {
+        "valid": True,
+        "entries_checked": len(entries),
+        "first_tampered_index": None,
+        "message": msg,
+    }
+
+
+def startup_sd_chain_health_check() -> bool:
+    """
+    SD-7 Gap #2: Run verify_sd_chain at startup. Print a warning if tampered.
+    Called automatically when this module is imported.
+    Returns True if healthy, False if tampered/broken.
+    """
+    result = verify_sd_chain()
+    if not result["valid"]:
+        logger.critical(
+            "A12 STARTUP: SD rejection log TAMPERED — %s", result["message"]
+        )
+        print(f"🚨 SD AUDIT CHAIN INTEGRITY FAILURE: {result['message']}")
+        return False
+    if result["entries_checked"] > 0:
+        logger.info(
+            "A12 STARTUP: SD rejection log OK (%d entries verified)",
+            result["entries_checked"],
+        )
+    return True
+
+
+# =============================================================================
 # MODULE-LEVEL CONVENIENCE (for pipeline integration)
 # =============================================================================
 
@@ -841,6 +1013,11 @@ def process(decision: Decision, hypothesis: Optional[Hypothesis] = None) -> Dict
     if hypothesis:
         memory_id = agent.store_hypothesis(hypothesis)
     return {"audit_hash": audit_hash, "memory_id": memory_id}
+
+
+# SD-7 Gap #2: Run chain integrity check on module load.
+# If sd_log.jsonl exists and is tampered, print a critical alert.
+startup_sd_chain_health_check()
 
 
 # =============================================================================
