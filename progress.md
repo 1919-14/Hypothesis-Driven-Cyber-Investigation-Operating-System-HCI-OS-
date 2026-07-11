@@ -558,3 +558,35 @@ ecall_hypotheses() lookup supporting keyword matching over goal, tags, mission i
 ```
 290 passed in 6.18s (61 A10 + 64 A1 + 47 A7 + 72 A4 + 46 A2) - zero failures, zero regressions
 ```
+---
+
+## [2026-07-11 13:20] - BUILD - TICKET 10 COMPLETE: A11 Behavioral Watchdog Agent (Contributor: V S S K Sai Narayana)
+
+**Status:** SUCCESS - 49/49 A11 tests + 290 existing = **339/339 passed in 13.10s**
+
+### hci_os/agents/a11_watchdog.py - Full A11 Behavioral Watchdog Agent
+- **Profiles Management:** Role profiles for agents A1–A11 defined in `data/agent_profiles.json`. If missing, auto-writes defaults on import.
+- **Output Type Check:** Validates that output type matching `type(output).__name__` is allowed and not forbidden (raises `CRITICAL` for forbidden `Decision` or `Hypothesis` outputs, and `HIGH` otherwise).
+- **Schema Validation:** Validates output dicts/objects against Pydantic schemas defined in the profile (e.g. `Evidence`, `Hypothesis`, `Decision`). Failures raise a `WARN` violation.
+- **Rate Limit Enforcement:** Sliding-window rate limiter utilizing double-ended queue. Exceeding max requests per minute raises `HIGH` violation.
+- **Forbidden Actions:** Compares invoked action against forbidden list. Match raises `CRITICAL` violation.
+- **Forbidden Paths (Gap #2):** Compares accessed file paths against profile's `forbidden_paths`. Match raises `CRITICAL` violation.
+- **Agent Suspension (Gap #3):** Suspending an agent immediately writes the status to `data/watchdog_suspensions.json`. Restored from disk upon module load/restart. Suspended agents skip execution and return fallback input.
+- **Self-Protection (Gap #1):** Implemented `health_check()` to verify profiles, log-dir writability, suspension file health, and ensures A11 can never be suspended. Uses an independent file handler/logger.
+
+### Gap Fixes Applied:
+| Gap | Fix |
+|-----|-----|
+| #1 Watchdog self-protection | `health_check()` verification API + A11 cannot self-suspend + independent logger handler. |
+| #2 File path violations | Added `forbidden_paths` validation to check path accesses with cross-platform normalization. |
+| #3 Suspension persistence | Persistent suspensions saved to disk `watchdog_suspensions.json` and reloaded on module import. |
+
+### Files created/modified:
+- `hci_os/agents/a11_watchdog.py` - DONE (Full Behavioral Watchdog implementation)
+- `hci_os/data/agent_profiles.json` - DONE (Role profiles definitions)
+- `hci_os/tests/test_a11_watchdog.py` - DONE (49 comprehensive unit tests)
+
+**Test result:**
+```
+339 passed in 13.10s (49 A11 + 61 A10 + 64 A1 + 47 A7 + 72 A4 + 46 A2) - zero failures, zero regressions
+```
