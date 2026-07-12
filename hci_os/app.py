@@ -228,6 +228,90 @@ async def health() -> JSONResponse:
 
 
 # =============================================================================
+# GNN VISUALIZATION — GAT + TGN + GraphSAGE (Gap #4 Cytoscape schema)
+# =============================================================================
+
+@app.get("/gnn/visualization", summary="A5: GNN Ensemble visualization (Cytoscape + TGN timeline + GraphSAGE PCA)")
+async def gnn_visualization(hypothesis_id: str = "") -> JSONResponse:
+    """
+    GET /gnn/visualization?hypothesis_id=H-2026-0031
+    Returns all three GNN outputs for the dashboard:
+      - cytoscape:  Cytoscape.js-compatible graph with attention + fused scores
+      - tgn_timeline: per-node memory norms over time
+      - sage_pca:   GraphSAGE embeddings projected to 2D
+    """
+    try:
+        from agents.a5_gnn import _get_ensemble
+        ens = _get_ensemble()
+        preds = ens.predict()
+        cyto  = ens.export_cytoscape(preds["fused_scores"], preds["attention"])
+        tline = ens.export_tgn_timeline(preds["memory_states"])
+        pca   = ens.export_sage_embeddings_pca(preds["embeddings"])
+        return JSONResponse(content={
+            "cytoscape": cyto,
+            "tgn_timeline": tline,
+            "sage_pca": pca,
+            "perf": preds.get("perf", {}),
+        })
+    except Exception as exc:
+        logger.error("/gnn/visualization error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+# Legacy alias kept for backward compat
+@app.get("/gat/topology", include_in_schema=False)
+async def gat_topology_legacy() -> JSONResponse:
+    return await gnn_visualization()
+
+
+# =============================================================================
+# DIGITAL TWIN SIMULATION (Gap #6)
+# =============================================================================
+
+class SimulateRequest(BaseModel):
+    start_node: str = "CBSE-WebSvr-01"
+    target_node: str = "CrownJewel-ExamDB"
+    attacker_ip: str = "185.23.147.82"
+    feed_pipeline: bool = False  # Set to False by default for quick demo
+
+
+@app.post("/digital-twin/simulate", summary="A14: Simulate APT attack through the infrastructure graph")
+async def digital_twin_simulate(req: SimulateRequest) -> JSONResponse:
+    """
+    POST /digital-twin/simulate
+    Runs a simulated APT attack from start_node to target_node.
+    If feed_pipeline=true, each hop is fed through the real investigation pipeline.
+    """
+    try:
+        from agents.digital_twin import DigitalTwin
+        twin = DigitalTwin()
+        result = twin.simulate_attack(
+            start_node=req.start_node,
+            target_node=req.target_node,
+            attacker_ip=req.attacker_ip,
+            feed_pipeline=req.feed_pipeline,
+        )
+        return JSONResponse(content=result)
+    except Exception as exc:
+        logger.error("/digital-twin/simulate error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/digital-twin/graph", summary="A14: Get Digital Twin graph for Cytoscape.js rendering")
+async def digital_twin_graph() -> JSONResponse:
+    """
+    GET /digital-twin/graph
+    Returns the Digital Twin's infrastructure graph in Cytoscape.js format.
+    """
+    try:
+        from agents.digital_twin import DigitalTwin
+        twin = DigitalTwin()
+        return JSONResponse(content=twin.get_cytoscape_elements())
+    except Exception as exc:
+        logger.error("/digital-twin/graph error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# =============================================================================
 # ROOT
 # =============================================================================
 
@@ -235,7 +319,15 @@ async def health() -> JSONResponse:
 async def root() -> JSONResponse:
     return JSONResponse(content={
         "service": "HCI-OS",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "docs":    "/docs",
         "health":  "/health",
+        "endpoints": {
+            "ingest": "/ingest",
+            "gat_topology": "/gat/topology",
+            "digital_twin_simulate": "/digital-twin/simulate",
+            "digital_twin_graph": "/digital-twin/graph",
+            "emergency_stop": "/emergency-stop",
+            "sd_chain_status": "/sd/chain-status",
+        },
     })

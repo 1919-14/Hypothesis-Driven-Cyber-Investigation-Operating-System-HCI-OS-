@@ -11,6 +11,54 @@
     "can_interrupt": true,
     "impact_if_compromised": "HIGH"
   },
+  "CBSE-WebSvr-02": {
+    "ip": "203.94.1.11",
+    "type": "web_server",
+    "criticality": "MEDIUM",
+    "mission": "exam_portal",
+    "software": ["Nginx 1.21"],
+    "internet_facing": true,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "CBSE-AppSrv-01": {
+    "ip": "10.1.1.10",
+    "type": "app_server",
+    "criticality": "MEDIUM",
+    "mission": "exam_portal",
+    "software": ["Tomcat 9.0"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "CBSE-AppSrv-02": {
+    "ip": "10.1.1.11",
+    "type": "app_server",
+    "criticality": "MEDIUM",
+    "mission": "exam_portal",
+    "software": ["Tomcat 9.0"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "CBSE-AppSrv-03": {
+    "ip": "10.1.1.12",
+    "type": "app_server",
+    "criticality": "HIGH",
+    "mission": "exam_portal",
+    "software": ["Tomcat 9.0", "Spring Boot 2.7"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "HIGH"
+  },
   "CBSE-DB-01": {
     "ip": "203.94.1.20",
     "type": "database",
@@ -21,6 +69,30 @@
     "safety_critical": false,
     "can_reboot": true,
     "can_interrupt": true,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "CrownJewel-ExamDB": {
+    "ip": "10.1.2.100",
+    "type": "database",
+    "criticality": "CRITICAL",
+    "mission": "exam_records",
+    "software": ["PostgreSQL 15"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "CRITICAL"
+  },
+  "CrownJewel-PatientDB": {
+    "ip": "10.10.2.100",
+    "type": "database",
+    "criticality": "CRITICAL",
+    "mission": "patient_records",
+    "software": ["PostgreSQL 15"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
     "impact_if_compromised": "CRITICAL"
   },
   "CBSE-AuthSvr-01": {
@@ -46,6 +118,30 @@
     "can_reboot": false,
     "can_interrupt": false,
     "impact_if_compromised": "CRITICAL"
+  },
+  "CBSE-DMZ": {
+    "ip": "203.94.1.1",
+    "type": "segment",
+    "criticality": "MEDIUM",
+    "mission": "perimeter",
+    "software": [],
+    "internet_facing": true,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "CBSE-Internal": {
+    "ip": "10.1.0.1",
+    "type": "segment",
+    "criticality": "MEDIUM",
+    "mission": "internal_network",
+    "software": [],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
   },
   "AIIMS-MRI-01": {
     "ip": "10.10.1.50",
@@ -83,6 +179,30 @@
     "can_interrupt": false,
     "impact_if_compromised": "HIGH"
   },
+  "AIIMS-Internal": {
+    "ip": "10.10.0.1",
+    "type": "segment",
+    "criticality": "MEDIUM",
+    "mission": "hospital_network",
+    "software": [],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "AIIMS-BackupSrv": {
+    "ip": "10.10.4.10",
+    "type": "backup_server",
+    "criticality": "MEDIUM",
+    "mission": "data_backup",
+    "software": ["Veeam Backup 12"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
   "POWERGRID-RTU-01": {
     "ip": "10.20.1.10",
     "type": "rtu",
@@ -106,6 +226,30 @@
     "can_reboot": false,
     "can_interrupt": false,
     "impact_if_compromised": "CRITICAL"
+  },
+  "POWERGRID-Internal": {
+    "ip": "10.20.0.1",
+    "type": "segment",
+    "criticality": "MEDIUM",
+    "mission": "grid_network",
+    "software": [],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "POWERGRID-EMS": {
+    "ip": "10.20.2.10",
+    "type": "ems",
+    "criticality": "HIGH",
+    "mission": "energy_management",
+    "software": ["GE EMS 4.0"],
+    "internet_facing": false,
+    "safety_critical": true,
+    "can_reboot": false,
+    "can_interrupt": false,
+    "impact_if_compromised": "HIGH"
   },
   "RAILWAY-PLC-01": {
     "ip": "10.30.1.10",
@@ -142,5 +286,77 @@
     "can_reboot": true,
     "can_interrupt": false,
     "impact_if_compromised": "HIGH"
+  },
+  "user_admin": {
+    "ip": "10.100.1.10",
+    "type": "user",
+    "criticality": "MEDIUM",
+    "mission": "system_administration",
+    "software": [],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "user_teacher": {
+    "ip": "10.100.2.10",
+    "type": "user",
+    "criticality": "LOW",
+    "mission": "exam_portal",
+    "software": [],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "LOW"
+  },
+  "user_student": {
+    "ip": "10.100.3.10",
+    "type": "user",
+    "criticality": "LOW",
+    "mission": "exam_portal",
+    "software": [],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "LOW"
+  },
+  "laptop_admin": {
+    "ip": "10.100.1.50",
+    "type": "device",
+    "criticality": "MEDIUM",
+    "mission": "system_administration",
+    "software": ["Windows 11", "PuTTY"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "svc_backup": {
+    "ip": "10.1.5.10",
+    "type": "service_account",
+    "criticality": "MEDIUM",
+    "mission": "data_backup",
+    "software": [],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
+  },
+  "svc_monitor": {
+    "ip": "10.1.5.20",
+    "type": "service_account",
+    "criticality": "MEDIUM",
+    "mission": "monitoring",
+    "software": ["Nagios"],
+    "internet_facing": false,
+    "safety_critical": false,
+    "can_reboot": true,
+    "can_interrupt": true,
+    "impact_if_compromised": "MEDIUM"
   }
 }

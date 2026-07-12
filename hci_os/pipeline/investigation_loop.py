@@ -9,9 +9,12 @@ Full pipeline wiring:
     → A2 (Normalize → Evidence Object)
     → A3 (Fingerprint Router: exact-match / semantic / novel)
     → A4 (Anomaly Detection)
+    → A5 (GNN Correlator — lateral movement prediction)
     → A6 (Attribution & RAG — SD-3 Resource Guardian)
     → A10 (Active Hunt — SD-8 Kill Switch guard, SD-3 circuit breaker)
+    → A8 (Critic — challenges hypothesis, rates FP likelihood)
     → A7 (SOAR Planner — SD-8 Kill Switch guard)
+      ↳ Gap #5: if A8 FP likelihood > 0.5 → force HUMAN_GATE
     → A13 (Federation — SD-8 Kill Switch guard, SD-5 Output Gate)
     → A12 (Audit & Memory)
 
@@ -34,8 +37,8 @@ _PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 if str(_PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(_PACKAGE_ROOT))
 
-from agents import a1_ingest, a2_normalize, a3_fingerprint, a4_anomaly, a6_attribution
-from agents import a7_soar, a10_hunt, a11_watchdog, a12_audit, a13_federation
+from agents import a1_ingest, a2_normalize, a3_fingerprint, a4_anomaly, a5_gnn, a6_attribution
+from agents import a7_soar, a8_critic, a10_hunt, a11_watchdog, a12_audit, a13_federation
 from agents.self_defense import (
     KillSwitchError,
     OutputJudgeViolation,
@@ -182,7 +185,7 @@ def run_investigation(
         logger.warning("A4 anomaly error (non-fatal): %s", exc)
         anomaly_score = 0.0
 
-    # ─── A6: Attribution & RAG (wrapped with SD-6 watchdog) ───────────────────
+    # ─── Hypothesis Initialization ─────────────────────────────────────────────
     if existing_hypothesis is None:
         from objects.hypothesis import Hypothesis
         hypothesis = Hypothesis.model_validate({
@@ -193,6 +196,14 @@ def run_investigation(
     else:
         hypothesis = existing_hypothesis
 
+    # ─── A5: GNN Correlator (lateral movement prediction) ──────────────────────
+    logger.info("Pipeline: A5 GNN Correlator")
+    try:
+        hypothesis = _run("A5", a5_gnn.process, evidence, hypothesis)
+    except Exception as exc:
+        logger.warning("A5 GNN error (non-fatal): %s", exc)
+
+    # ─── A6: Attribution & RAG (wrapped with SD-6 watchdog) ───────────────────
     logger.info("Pipeline: A6 Attribution")
     try:
         hypothesis = _run("A6", a6_attribution.process, evidence, hypothesis)
@@ -209,6 +220,25 @@ def run_investigation(
         _sd_event("SD-8", str(kse), {"agent": "A10"})
     except Exception as exc:
         logger.warning("A10 hunt error (non-fatal): %s", exc)
+
+    # ─── A8: Critic Agent (challenges hypothesis) ─────────────────────────────
+    logger.info("Pipeline: A8 Critic")
+    try:
+        hypothesis = _run("A8", a8_critic.process, evidence, hypothesis)
+    except Exception as exc:
+        logger.warning("A8 critic error (non-fatal): %s", exc)
+
+    # Gap #5: If critic rates false-positive likelihood > 0.5, force HUMAN_GATE
+    critic_fp = 0.0
+    if hasattr(hypothesis, "world_model") and hypothesis.world_model is not None:
+        critic_fp = hypothesis.world_model.safety_constraints.get("critic_fp_likelihood", 0.0)
+    if critic_fp > 0.5:
+        logger.warning(
+            "Pipeline: A8 critic FP=%.2f > 0.50 — forcing HUMAN_GATE via safety constraint",
+            critic_fp,
+        )
+        if hypothesis.world_model is not None:
+            hypothesis.world_model.safety_constraints["auto_isolate_allowed"] = False
 
     result["hypothesis"] = {"confidence": hypothesis.confidence, "state": hypothesis.state}
 
