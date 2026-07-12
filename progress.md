@@ -692,3 +692,52 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 ```
 587 passed in 119.14s (50 SD + 46 A13 + 49 A11 + 61 A10 + 64 A12 + 64 A1 + 47 A7 + 72 A4 + 46 A2 + ...) — zero failures, zero regressions
 ```
+
+---
+
+## [2026-07-12 18:50] - BUILD - TICKET 13 COMPLETE: GNN Ensemble & Digital Twin Pathing (Contributor: V S S K Sai Narayana)
+
+**Status:** SUCCESS — 37/37 GNN tests + 587 existing = **624/624 passed in 126.83s**  
+**Branch:** `29-hci-os-15-frontend-dashboard-timeline-attack-topology-human-gate--kill-switch`
+
+### GNN Ensemble Architectures & Training
+- **GAT (Graph Attention Network)**: Multi-head attention model (`models/gat.py`) that computes node embeddings and attention weights for attack path correlation.
+- **TGN (Temporal Graph Network)**: Dynamic node memory model (`models/tgn.py`) with a GRU updater and time-decay positional encodings to track progressive slow lateral movement. Prevented GRU gradient graph issues by cloning node-memory tensors.
+- **GraphSAGE**: Inductive learning model (`models/graphsage.py`) using mean neighbor aggregators to handle dynamic network nodes.
+- **Unified Ensemble Fusion**: `agents/a5_gnn.py` computes a weighted combination: `fused_score = 0.4 * GAT + 0.3 * TGN + 0.3 * GraphSAGE` and updates the active Hypothesis confidence with `min(confidence + fused * 0.1, 1.0)`.
+- **Pre-Training & Serialization Pipeline**: A unified pre-training script (`scripts/train_all_models.py`) trains and serializes all A4 (Anomaly Detector) and A5 (GNN Ensemble) model weights under `data/models/` using versioning metadata.
+
+### Digital Twin GNN-guided Attack Simulation
+- `agents/digital_twin.py` updated to run a `simulate_gnn_guided` attack path using fused GNN attention weights and node criticalities to find the most probable attack path.
+
+### Cytoscape & Performance Exporters
+- Implemented schema-compliant exporters in `a5_gnn.py` for Cytoscape.js visualization, TGN memory-norm timeline drift, and GraphSAGE PCA 2D coordinates projection. Measures model sizes and inference latencies (tracking ≤10ms SLA).
+
+### Gap Fixes Applied:
+| Gap | Fix |
+|---|-----|
+| #1 Model persistence format | Added version + metadata (model type, training timestamp) to PT and PKL checkpoints |
+| #2 Temporal data details | Extended graph with UTC timestamps on nodes (`first_seen`, `last_seen`) and edges |
+| #3 Neighbor sampling | GraphSAGE aggregates fixed-size neighborhood lists, padded with zeros if necessary |
+| #4 Cytoscape format | Exported elements exactly match Cytoscape.js nodes/edges group and data schemas |
+| #5 Fusion weight validation | Validates that GAT + TGN + GraphSAGE fusion weights sum to exactly 1.0 at initialization |
+| #6 Hypothesis integration | Updates active hypothesis confidence using combined GNN fusion scores |
+| #7 Training labels | Programmatically generates threat propagation training labels based on graph attack paths |
+| #8 Digital Twin GNN use | Fused GNN prediction weights drive simulated attack propagation choices |
+| #9 Error handling | Robust fallbacks load pre-trained checkpoints or trigger training if weights are missing |
+| #10 Performance tracking | Tracks file size and records inference times in milliseconds for logging |
+
+### Files created/modified:
+- `hci_os/models/gat.py` — NEW (native GAT implementation)
+- `hci_os/models/tgn.py` — NEW (native TGN implementation)
+- `hci_os/models/graphsage.py` — NEW (native GraphSAGE implementation)
+- `hci_os/agents/a5_gnn.py` — MODIFIED (Ensemble coordination, fusion, and visualization data preparation)
+- `hci_os/agents/digital_twin.py` — MODIFIED (GNN-guided path selection + log schemas)
+- `hci_os/scripts/train_all_models.py` — NEW (unified training and serialization runner)
+- `hci_os/tests/test_gnn_ensemble.py` — NEW (37 unit tests for model training, execution, and export)
+
+**Test result:**
+```
+624 passed in 126.83s (37 GNN + 50 SD + 46 A13 + 49 A11 + 61 A10 + 64 A12 + ...) — zero failures, zero regressions
+```
+
