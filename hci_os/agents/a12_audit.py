@@ -976,7 +976,7 @@ def startup_sd_chain_health_check() -> bool:
         logger.critical(
             "A12 STARTUP: SD rejection log TAMPERED — %s", result["message"]
         )
-        print(f"🚨 SD AUDIT CHAIN INTEGRITY FAILURE: {result['message']}")
+        print(f"? SD AUDIT CHAIN INTEGRITY FAILURE: {result['message']}")
         return False
     if result["entries_checked"] > 0:
         logger.info(
@@ -1113,7 +1113,7 @@ if __name__ == "__main__":
         bad_shadow  = {"precision": 0.70, "recall": 0.60, "f1": 0.65}
         assert agent.should_promote_shadow_model(good_shadow, live) is True
         assert agent.should_promote_shadow_model(bad_shadow, live)  is False
-        print("10. Shadow promotion: good=PROMOTE, bad=REJECT ✅")
+        print("10. Shadow promotion: good=PROMOTE, bad=REJECT ?")
 
         # 9. Stats
         stats = agent.get_stats()
