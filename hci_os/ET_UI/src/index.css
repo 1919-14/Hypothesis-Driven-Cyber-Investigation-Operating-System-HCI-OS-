@@ -1,0 +1,441 @@
+@import "tailwindcss";
+
+@theme {
+  /* Tailwind v4 grid column theme variables */
+  --grid-template-columns-12: repeat(12, minmax(0, 1fr));
+  --grid-template-columns-8: repeat(8, minmax(0, 1fr));
+  --grid-template-columns-7: repeat(7, minmax(0, 1fr));
+  --grid-template-columns-5: repeat(5, minmax(0, 1fr));
+  --grid-template-columns-4: repeat(4, minmax(0, 1fr));
+  --grid-template-columns-3: repeat(3, minmax(0, 1fr));
+  --grid-template-columns-2: repeat(2, minmax(0, 1fr));
+}
+
+:root {
+    --hci-bg: #f4f5f7;
+    --hci-surface: #ffffff;
+    --hci-surface-2: #fcfdfd;
+    --hci-border: #e2e4e9;
+    --hci-border-strong: #cbd0d8;
+    --hci-text: #111827;
+    --hci-text-2: #4b5563;
+    --hci-text-3: #6b7280;
+    --hci-brand: #0a58ca;
+    --hci-brand-hover: #084298;
+    --hci-critical: #dc2626;
+    --hci-suspicious: #ea580c;
+    --hci-warning: #d97706;
+    --hci-clean: #059669;
+    --hci-live: #ef4444;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background-color: var(--hci-bg);
+    color: var(--hci-text);
+    font-family:
+        "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings:
+        "cv02", "cv03", "cv04", "cv11";
+}
+
+.font-head {
+    font-family: "Chivo", "IBM Plex Sans", sans-serif;
+    letter-spacing: -0.01em;
+}
+.font-mono {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+.label-caps {
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--hci-text-3);
+}
+
+/* Blueprint grid on canvas */
+.blueprint-grid {
+    background-image:
+        linear-gradient(
+            to right,
+            rgba(203, 208, 216, 0.35) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            to bottom,
+            rgba(203, 208, 216, 0.35) 1px,
+            transparent 1px
+        );
+    background-size: 40px 40px;
+    background-position:
+        -1px -1px,
+        -1px -1px;
+}
+
+/* Panels */
+.panel {
+    background: var(--hci-surface);
+    border: 1px solid var(--hci-border);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.panel-raised {
+    background: var(--hci-surface-2);
+    border: 1px solid var(--hci-border);
+    border-radius: 8px;
+}
+
+/* Severity chips */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: "JetBrains Mono", monospace;
+    border: 1px solid transparent;
+    line-height: 1.6;
+}
+.chip-critical {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+.chip-suspicious {
+    background: #ffedd5;
+    color: #9a3412;
+    border-color: #fdba74;
+}
+.chip-warning {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+.chip-clean {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+.chip-info {
+    background: #dbeafe;
+    color: #1e3a8a;
+    border-color: #93c5fd;
+}
+.chip-neutral {
+    background: #f1f5f9;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1;
+    border: 1px solid transparent;
+    background: #fff;
+    color: var(--hci-text);
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        transform 0.06s ease;
+}
+.btn:active {
+    transform: translateY(1px) scale(0.99);
+}
+.btn:focus-visible {
+    outline: 2px solid var(--hci-brand);
+    outline-offset: 2px;
+}
+.btn-primary {
+    background: var(--hci-brand);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: var(--hci-brand-hover);
+}
+.btn-outline {
+    background: #fff;
+    color: var(--hci-text);
+    border-color: var(--hci-border-strong);
+}
+.btn-outline:hover {
+    background: #f8fafc;
+    border-color: var(--hci-brand);
+    color: var(--hci-brand);
+}
+.btn-ghost {
+    background: transparent;
+    color: var(--hci-text-2);
+}
+.btn-ghost:hover {
+    background: #f1f5f9;
+    color: var(--hci-text);
+}
+.btn-danger {
+    background: var(--hci-critical);
+    color: #fff;
+}
+.btn-danger:hover {
+    background: #b91c1c;
+}
+.btn-success-outline {
+    background: #fff;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+.btn-success-outline:hover {
+    background: #ecfdf5;
+    border-color: #059669;
+}
+.btn-amber-outline {
+    background: #fff;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+.btn-amber-outline:hover {
+    background: #fffbeb;
+    border-color: #d97706;
+}
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* Kill switch pulsing */
+.pulse-ring {
+    position: absolute;
+    inset: -3px;
+    border-radius: 8px;
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6);
+    animation: pulseRing 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    pointer-events: none;
+}
+@keyframes pulseRing {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(220, 38, 38, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    }
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--hci-live);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+    animation: livePulse 1.6s ease-out infinite;
+    display: inline-block;
+}
+@keyframes livePulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+/* Timeline */
+.timeline-track {
+    position: relative;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(
+        to right,
+        #dbeafe 0%,
+        #fde68a 40%,
+        #fecaca 70%,
+        #fecaca 100%
+    );
+}
+.timeline-thumb {
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #fff;
+    border: 3px solid var(--hci-brand);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 6px rgba(10, 88, 202, 0.35);
+    cursor: pointer;
+}
+.timeline-tick {
+    position: absolute;
+    top: -6px;
+    width: 2px;
+    height: 18px;
+    background: #94a3b8;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+.timeline-event-dot {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    border: 2px solid #fff;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+.timeline-event-dot:hover {
+    transform: translate(-50%, -50%) scale(1.35);
+    box-shadow: 0 0 0 3px rgba(10, 88, 202, 0.25);
+}
+
+/* Sidebar item */
+.side-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    color: var(--hci-text-2);
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    width: 100%;
+    background: none;
+    text-align: left;
+    transition:
+        background-color 0.12s ease,
+        color 0.12s ease,
+        border-color 0.12s ease;
+}
+.side-item:hover {
+    background: #eef2ff;
+    color: var(--hci-brand);
+}
+.side-item.active {
+    background: #eef2ff;
+    color: var(--hci-brand);
+    border-color: #bfdbfe;
+}
+
+/* Cards hover */
+.card-hover {
+    transition:
+        transform 0.12s ease,
+        box-shadow 0.12s ease,
+        border-color 0.12s ease;
+}
+.card-hover:hover {
+    transform: translateY(-1px);
+    border-color: #bfdbfe;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+/* Cytoscape container */
+.cy-container {
+    background:
+        radial-gradient(
+            circle at 1px 1px,
+            rgba(148, 163, 184, 0.25) 1px,
+            transparent 0
+        );
+    background-size: 18px 18px;
+    background-color: #ffffff;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 999px;
+    border: 2px solid #f4f5f7;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Utilities */
+.divider-v {
+    width: 1px;
+    background: var(--hci-border);
+    align-self: stretch;
+}
+
+.kbd {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-bottom-width: 2px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #334155;
+}
+
+/* ---- Explicit grid column spans for 12-col layout ---- */
+/* These are needed since Tailwind v4 doesn't auto-generate all variants */
+.grid { display: grid; }
+.grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.grid-cols-8  { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.grid-cols-7  { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.grid-cols-5  { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.grid-cols-4  { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid-cols-3  { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-2  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.col-span-1  { grid-column: span 1 / span 1; }
+.col-span-2  { grid-column: span 2 / span 2; }
+.col-span-3  { grid-column: span 3 / span 3; }
+.col-span-4  { grid-column: span 4 / span 4; }
+.col-span-5  { grid-column: span 5 / span 5; }
+.col-span-6  { grid-column: span 6 / span 6; }
+.col-span-7  { grid-column: span 7 / span 7; }
+.col-span-8  { grid-column: span 8 / span 8; }
+.col-span-9  { grid-column: span 9 / span 9; }
+.col-span-10 { grid-column: span 10 / span 10; }
+.col-span-11 { grid-column: span 11 / span 11; }
+.col-span-12 { grid-column: span 12 / span 12; }
+
+/* Prevent any single column from making the whole grid wider than its container */
+.grid > * { min-width: 0; overflow: hidden; }
+
+
+@media (prefers-reduced-motion: reduce) {
+    .live-dot,
+    .pulse-ring {
+        animation: none;
+    }
+}

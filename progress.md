@@ -741,3 +741,53 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 624 passed in 126.83s (37 GNN + 50 SD + 46 A13 + 49 A11 + 61 A10 + 64 A12 + ...) — zero failures, zero regressions
 ```
 
+---
+
+## [2026-07-15 01:38] — BUILD — TICKET 14 COMPLETE: UI Dashboard, Timeline, Kill Switch, GNN Integration, and RBAC
+
+**Status:** ✅ SUCCESS  
+**Branch:** `29-hci-os-15-frontend-dashboard-timeline-attack-topology-human-gate--kill-switch`
+
+### 1. Backend Integration (FastAPI)
+- **FastAPI Endpoints**: Implemented and integrated five new API endpoints in `app.py`:
+  - `GET /incident/timeline/{hypothesis_id}`: Incident data + timeline events (real memory + fallback seed).
+  - `GET /decisions/pending`: List of pending human-gate decisions.
+  - `POST /correction/{action}`: Enforces human-gate decision consensus (confirm/revoke/modify/escalate).
+  - `POST /chatbot/query`: LLM-based query handling utilizing Groq Cloud API with `llama-3.1-8b-instant`.
+  - `GET /cert-in/report/{hypothesis_id}`: Auto-generated CERT-In section 70B compliance reports (Markdown & JSON support).
+- **CORS Support**: Added `CORSMiddleware` to allow cross-origin requests from the React dev server.
+- **Robust Fallback Seed**: Added `hci_os/data/demo_seed.json` to ensure immediate and stable operation on initial cold starts.
+
+### 2. Frontend Wiring & React Hooks (TanStack Query)
+- Created and integrated 8 custom hooks in `ET_UI/src/api/` matching all telemetry endpoints:
+  - `useTimeline`, `useDecisions`, `useKillSwitch`, `useGnn`, `useDigitalTwin`, `useChatbot`, `useCertIn`, `useHealth`.
+- Wired all major interface panels (`Timeline`, `HumanGatePanel`, `KillSwitch`, `AttackGraph`, `Chatbot`, `CertInReport`, `HealthPage`) to retrieve real-time state from the FastAPI backend.
+- Globally set `retry: 1` and `retryDelay: 5000` to prevent query failure console flooding when backend is offline.
+
+### 3. UI Responsiveness & Layout Fixes
+- **Header**: Compacted the Kill Switch button and live badge layout; set search input to `flex-1 min-w-0` to guarantee header fit on any size monitor.
+- **Stat Cards**: Refactored metrics to a clean 4-column responsive grid where labels wrap gracefully instead of overflowing horizontally.
+- **Global CSS**: Enforced `.grid > * { min-width: 0 }` to prevent dynamic nested content from forcing the layout wider than the container.
+- **Human Gate Panel**: Action buttons (`CONFIRM`, `REVOKE`, etc.) wrap dynamically within flex layouts to prevent screen overflow.
+
+### 4. Bug Fixes
+- Fixed a `UnicodeEncodeError` crash in `a12_audit.py` on Windows machines caused by printing emoji characters to a non-UTF-8 console.
+
+### Files created/modified:
+- `hci_os/app.py` — MODIFIED (new ASGI UI endpoints, CORS configuration)
+- `hci_os/data/demo_seed.json` — NEW (demo seed data fallback)
+- `hci_os/agents/a12_audit.py` — MODIFIED (safe ASCII prints for startup verification)
+- `hci_os/ET_UI/vite.config.js` — MODIFIED (Vite proxy `/api` -> `:8000`)
+- `hci_os/ET_UI/src/index.jsx` — MODIFIED (QueryClient retry policy)
+- `hci_os/ET_UI/src/index.css` — MODIFIED (Grid auto-min-width overflow rule)
+- `hci_os/ET_UI/src/App.jsx` — MODIFIED (Layout shell overflow-hidden)
+- `hci_os/ET_UI/src/pages/IncidentPage.jsx` — MODIFIED (4-col stat cards, hook integration)
+- `hci_os/ET_UI/src/pages/OtherPages.jsx` — MODIFIED (HealthPage live watchdog hook wiring)
+- `hci_os/ET_UI/src/components/layout/Header.jsx` — MODIFIED (compact responsive layout)
+- `hci_os/ET_UI/src/components/layout/KillSwitch.jsx` — MODIFIED (hook integration + compactness)
+- `hci_os/ET_UI/src/components/gate/HumanGatePanel.jsx` — MODIFIED (actions mutation, wrapping)
+- `hci_os/ET_UI/src/components/topology/AttackGraph.jsx` — MODIFIED (useGnn live graph rendering)
+- `hci_os/ET_UI/src/components/chatbot/Chatbot.jsx` — MODIFIED (useChatbot Groq/fallback integration)
+- `hci_os/ET_UI/src/components/report/CertInReport.jsx` — MODIFIED (useCertIn dynamic bindings)
+
+
