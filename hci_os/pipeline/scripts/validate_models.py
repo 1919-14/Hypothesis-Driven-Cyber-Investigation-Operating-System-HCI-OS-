@@ -38,6 +38,10 @@ _REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 sys.path.insert(0, str(_ROOT))
 
+# Must import NumpyLSTMAutoencoder from the shared module so pickle can
+# resolve "pipeline.lstm_ae_model.NumpyLSTMAutoencoder" when loading the .pkl
+from pipeline.lstm_ae_model import NumpyLSTMAutoencoder  # noqa: F401, E402
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
