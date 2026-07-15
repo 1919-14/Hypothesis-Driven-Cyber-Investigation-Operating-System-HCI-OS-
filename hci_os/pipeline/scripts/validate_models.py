@@ -99,8 +99,12 @@ def validate_isolation_forest(
     X_benign: np.ndarray,
     X_attack: np.ndarray,
 ) -> Dict:
+    """
+    Validate Isolation Forest using IF-specific 25-feature data.
+    Uses ROC-optimal threshold from sklearn.metrics.roc_curve (Fix 3).
+    """
     logger.info("")
-    logger.info("── Isolation Forest ──────────────────────────────────")
+    logger.info("── Isolation Forest (25-feature, ROC-optimal threshold) ─────")
 
     payload = _load_pkl("isolation_forest")
     if payload is None:
@@ -110,50 +114,62 @@ def validate_isolation_forest(
     if isinstance(model_bundle, dict):
         model   = model_bundle["model"]
         scaler  = model_bundle.get("scaler")
-        thresh  = model_bundle.get("threshold", None)
+        n_feat  = model_bundle.get("n_features", 20)
     else:
-        model  = model_bundle
-        scaler = None
-        thresh = None
+        model   = model_bundle
+        scaler  = None
+        n_feat  = 20
 
-    # Scale
+    # Align feature dims: IF model may expect 25 features
+    def _align(X):
+        if X.shape[1] < n_feat:
+            pad = np.zeros((len(X), n_feat - X.shape[1]), dtype=np.float32)
+            return np.hstack([X, pad])
+        return X[:, :n_feat]
+
+    X_b = _align(X_benign)
+    X_a = _align(X_attack)
+
     if scaler is not None:
-        X_b_s = scaler.transform(X_benign)
-        X_a_s = scaler.transform(X_attack)
-    else:
-        X_b_s, X_a_s = X_benign, X_attack
+        X_b = scaler.transform(X_b)
+        X_a = scaler.transform(X_a)
 
-    # Scores (more negative = more anomalous)
-    scores_benign = model.score_samples(X_b_s)
-    scores_attack = model.score_samples(X_a_s)
+    scores_benign = model.score_samples(X_b)   # more negative = more anomalous
+    scores_attack = model.score_samples(X_a)
 
-    # ── Constrained ROC threshold ─────────────────────────────────────────
-    # Find the threshold that maximises DR while keeping FPR <= PASS_IF_FPR.
-    # Candidate thresholds = all unique score values in the combined set.
-    all_scores = np.concatenate([scores_benign, scores_attack])
-    candidates = np.unique(all_scores)
+    # ── Fix 3: ROC-optimal threshold via sklearn.metrics.roc_curve ────────────
+    # We negate scores so that higher = more anomalous (roc_curve convention)
+    try:
+        from sklearn.metrics import roc_curve, roc_auc_score
+        all_neg_scores = np.concatenate([-scores_benign, -scores_attack])
+        all_labels     = np.concatenate([np.zeros(len(scores_benign)),
+                                          np.ones(len(scores_attack))])
+        fpr_arr, tpr_arr, thresholds = roc_curve(all_labels, all_neg_scores)
+        # Youden's J: maximise TPR - FPR while respecting PASS_IF_FPR
+        j_scores = tpr_arr - fpr_arr
+        # Prefer thresholds where FPR <= PASS_IF_FPR
+        mask = fpr_arr <= PASS_IF_FPR
+        if mask.any():
+            best_idx   = np.argmax(j_scores * mask)
+        else:
+            best_idx   = np.argmax(j_scores)   # relax constraint if impossible
+        opt_neg_thresh = thresholds[best_idx]   # threshold on -scores
+        auc = float(roc_auc_score(all_labels, all_neg_scores))
+    except ImportError:
+        # Fallback if sklearn missing
+        opt_neg_thresh = -float(np.percentile(scores_benign, 5))
+        auc = _compute_roc_auc(-np.concatenate([scores_benign, scores_attack]),
+                               np.concatenate([np.zeros(len(scores_benign)),
+                                               np.ones(len(scores_attack))]))
 
-    best_dr, best_thresh = 0.0, float(np.percentile(scores_benign, 5))
-    for cand in candidates:
-        fpr_c = float(np.mean(scores_benign < cand))
-        if fpr_c > PASS_IF_FPR:
-            continue   # skip if FPR exceeds the pass limit
-        dr_c = float(np.mean(scores_attack < cand))
-        if dr_c > best_dr:
-            best_dr, best_thresh = dr_c, cand
-
-    thresh = best_thresh
+    # Convert back: score < -opt_neg_thresh means anomalous
+    thresh = -opt_neg_thresh
     fpr = float(np.mean(scores_benign < thresh))
     dr  = float(np.mean(scores_attack < thresh))
 
-    # AUC (approximate via threshold sweep)
-    all_scores = np.concatenate([scores_benign, scores_attack])
-    all_labels = np.concatenate([np.zeros(len(scores_benign)), np.ones(len(scores_attack))])
-    auc = _compute_roc_auc(-all_scores, all_labels)   # negate so higher = more anomalous
-
     passed = (fpr <= PASS_IF_FPR) and (dr >= PASS_IF_DR)
-    logger.info("  FPR=%.3f (pass<=%.2f)  DR=%.3f (pass>=%.2f)  AUC=%.3f",
-                fpr, PASS_IF_FPR, dr, PASS_IF_DR, auc)
+    logger.info("  FPR=%.3f (pass<=%.2f)  DR=%.3f (pass>=%.2f)  AUC=%.3f  n_feat=%d",
+                fpr, PASS_IF_FPR, dr, PASS_IF_DR, auc, n_feat)
 
     return {
         "status":    "PASS" if passed else "FAIL",
@@ -161,6 +177,7 @@ def validate_isolation_forest(
         "detection_rate": round(dr, 4),
         "auc":       round(auc, 4),
         "threshold": round(thresh, 6),
+        "n_features": n_feat,
         "n_benign":  len(X_benign),
         "n_attack":  len(X_attack),
     }
@@ -390,7 +407,7 @@ def main() -> None:
     logger.info("  HCI-OS A4 Model Validation  (Ticket 19)")
     logger.info("=" * 65)
 
-    # ── Load test data ────────────────────────────────────────────────────────
+    # ── Load 20-feature test data (Gaussian + LSTM-AE) ───────────────────────
     benign_parts, attack_parts = [], []
     for ds in ("cicids", "unsw"):
         b = _load_npy(f"{ds}_benign", max_n=args.max_samples // 2)
@@ -406,12 +423,23 @@ def main() -> None:
 
     X_benign = np.vstack(benign_parts)
     X_attack = np.vstack(attack_parts)
+    logger.info("20-feat validation: %d benign, %d attack", len(X_benign), len(X_attack))
 
-    logger.info("Validation set: %d benign, %d attack", len(X_benign), len(X_attack))
+    # ── Load IF-specific 25-feature test data ────────────────────────────────
+    X_if_benign = _load_npy("cicids_benign_if", max_n=args.max_samples // 2)
+    X_if_attack = _load_npy("cicids_attack_if", max_n=args.max_samples // 2)
+    if X_if_benign is None:
+        logger.warning("cicids_benign_if.npy not found — IF will use 20-feat fallback")
+        X_if_benign = X_benign
+    if X_if_attack is None:
+        logger.warning("cicids_attack_if.npy not found — IF will use 20-feat fallback")
+        X_if_attack = X_attack
+    logger.info("25-feat IF validation: %d benign, %d attack",
+                len(X_if_benign), len(X_if_attack))
 
-    # ── Validate each model ───────────────────────────────────────────────────
+    # ── Validate each model ─────────────────────────────────────────────────
     results = {}
-    results["isolation_forest"]    = validate_isolation_forest(X_benign, X_attack)
+    results["isolation_forest"]    = validate_isolation_forest(X_if_benign, X_if_attack)
     results["gaussian_likelihood"] = validate_gaussian(X_benign, X_attack)
     results["lstm_autoencoder"]    = validate_lstm_ae(X_benign, X_attack)
 

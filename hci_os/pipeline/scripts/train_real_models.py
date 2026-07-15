@@ -134,7 +134,21 @@ def train_isolation_forest(
     max_samples: int = 500_000,
     force: bool = False,
 ) -> Optional[Dict]:
-    _section("Isolation Forest")
+    """
+    Train IsolationForest on benign traffic (25-feature IF-specific space).
+
+    Fix 1 — Hyperparameter tuning:
+      contamination = 'auto'   (algorithm estimates, avoids 1% mismatch)
+      max_samples   = 4096     (better global patterns vs default 256)
+      bootstrap     = True     (better variance, less overfitting)
+      n_estimators  = 300      (more trees = finer decision surface)
+
+    Fix 2 — Feature Engineering:
+      Uses 25-feature X_benign from cicids_benign_if.npy which adds:
+      syn_ack_ratio, pkt_len_variance, rst_flag_rate,
+      within_chunk_port_entropy, within_chunk_unique_dests.
+    """
+    _section("Isolation Forest  (Fix 1+2: 25 features + tuned hyperparameters)")
 
     out_path = _MODEL_DIR / "isolation_forest.pkl"
     if not force and out_path.exists():
@@ -149,19 +163,20 @@ def train_isolation_forest(
         return None
 
     X = _subsample(X_benign, max_samples)
+    n_features = X.shape[1]   # 25 for IF-specific data, 20 as fallback
 
-    scaler = _load_scaler()
-    if scaler is None:
-        scaler = StandardScaler()
-        scaler.fit(X)
-
+    # Fit a dedicated scaler for the IF feature space
+    # (separate from the 20-feature scaler used by Gaussian/LSTM-AE)
+    scaler = StandardScaler()
+    scaler.fit(X)
     X_scaled = scaler.transform(X)
 
     t0 = time.perf_counter()
     model = IsolationForest(
-        n_estimators=200,
-        contamination=0.01,
-        max_samples=min(256, len(X_scaled)),
+        n_estimators=300,            # Fix 1: 100 -> 300
+        contamination="auto",        # Fix 1: 0.01 -> 'auto'
+        max_samples=4096,            # Fix 1: 256 -> 4096
+        bootstrap=True,              # Fix 1: False -> True
         random_state=42,
         n_jobs=-1,
     )
@@ -172,18 +187,22 @@ def train_isolation_forest(
     threshold = float(np.percentile(scores, 5))
     train_fpr = float(np.mean(scores < threshold))
 
-    logger.info("    Trained in %.2fs on %d samples", elapsed, len(X))
+    logger.info("    Trained in %.2fs on %d samples (%d features)",
+                elapsed, len(X), n_features)
     logger.info("    Train FPR (5th-pct threshold): %.3f", train_fpr)
 
     meta = {
-        "n_estimators": 200, "contamination": 0.01,
-        "n_samples_train": len(X), "n_features": FEATURE_DIM,
+        "n_estimators": 300, "contamination": "auto",
+        "max_samples": 4096, "bootstrap": True,
+        "n_samples_train": len(X), "n_features": n_features,
         "elapsed_s": round(elapsed, 2),
         "train_fpr_5pct": round(train_fpr, 4),
         "score_threshold_5pct": float(threshold),
-        "datasets": ["CICIDS-2017", "CIC-UNSW-NB15"],
+        "datasets": ["CICIDS-2017"],
+        "fix": "Fix1+Fix2: 25-feature contextual + hyperparameter tuning",
     }
-    _save_pkl({"model": model, "scaler": scaler, "threshold": threshold},
+    _save_pkl({"model": model, "scaler": scaler, "threshold": threshold,
+               "n_features": n_features},
               "isolation_forest", meta)
     return meta
 
@@ -361,26 +380,34 @@ def main() -> None:
     report    = {}
     t_start   = time.perf_counter()
 
-    # ── Load benign data ──────────────────────────────────────────────────────
+    # ── Load benign data (20-feature) for Gaussian + LSTM-AE ──────────────────────
     benign_parts = []
     for fname in ("cicids_benign", "unsw_benign"):
         arr = _load_processed(fname)
         if arr is not None:
             benign_parts.append(arr)
 
-    if not benign_parts and (train_all or args.if_only or args.gauss_only):
+    if not benign_parts and (train_all or args.gauss_only or args.lstm_only):
         logger.error("No processed benign data in %s", _PROC_DIR)
         logger.error("Run: python pipeline/scripts/preprocess_real_data.py")
         sys.exit(1)
 
     X_benign = np.vstack(benign_parts) if benign_parts else np.empty((0, FEATURE_DIM), np.float32)
-    logger.info("Combined benign samples: %d", len(X_benign))
+    logger.info("Combined benign samples (20-feat): %d", len(X_benign))
 
-    max_if = args.max_samples or len(X_benign)
+    # ── Load IF-specific benign data (25-feature) ─────────────────────────────
+    X_if_benign = _load_processed("cicids_benign_if")
+    if X_if_benign is None:
+        logger.warning("cicids_benign_if.npy not found — IF will use 20-feature fallback")
+        X_if_benign = X_benign    # fallback: use 20-feat data
+    else:
+        logger.info("IF benign samples (25-feat): %d", len(X_if_benign))
 
-    # ── Isolation Forest ──────────────────────────────────────────────────────
+    max_if = args.max_samples or len(X_if_benign)
+
+    # ── Isolation Forest (uses 25-feature IF data) ────────────────────────────
     if train_all or args.if_only:
-        meta = train_isolation_forest(X_benign, max_samples=max_if, force=args.force)
+        meta = train_isolation_forest(X_if_benign, max_samples=max_if, force=args.force)
         if meta:
             report["isolation_forest"] = meta
 

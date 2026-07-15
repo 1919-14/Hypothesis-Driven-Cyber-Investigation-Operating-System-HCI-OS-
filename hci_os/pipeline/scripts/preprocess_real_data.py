@@ -77,9 +77,10 @@ warnings.filterwarnings("ignore")
 # 19  connection_density  (fwd+bwd / max(flow_duration,1e-3))
 
 FEATURE_DIM = 20
-SEQUENCE_LEN = 10   # sliding window length for LSTM-AE
+IF_FEATURE_DIM = 25   # extended feature set for Isolation Forest only
+SEQUENCE_LEN = 10    # sliding window length for LSTM-AE
 
-# ── CICIDS-2017 column mapping ────────────────────────────────────────────────
+# ── CICIDS-2017 column mapping (base 20 features) ────────────────────────────
 CICIDS_COLUMNS = {
     "bytes":          [" Total Length of Fwd Packets", "Total Length of Fwd Packet",
                        "TotalLengthofFwdPackets", "totlenFwdPkts"],
@@ -93,6 +94,17 @@ CICIDS_COLUMNS = {
     "protocol":       [" Protocol", "Protocol"],
     "timestamp":      [" Timestamp", "Timestamp"],
     "label":          [" Label", "Label"],
+}
+
+# ── CICIDS-2017 extended columns (used only for IF 25-feature set) ────────────
+CICIDS_IF_EXTRA_COLUMNS = {
+    "syn_flag":    [" SYN Flag Count", "SYN Flag Count", "SYNFlagCount"],
+    "ack_flag":    [" ACK Flag Count", "ACK Flag Count", "ACKFlagCount"],
+    "rst_flag":    [" RST Flag Count", "RST Flag Count", "RSTFlagCount"],
+    "pkt_len_var": [" Packet Length Variance", "Packet Length Variance",
+                   "PacketLengthVariance"],
+    "src_ip":      [" Source IP", "Src IP", "SourceIP"],
+    "dst_ip":      [" Destination IP", "Dst IP", "DestinationIP"],
 }
 
 # ── CIC-UNSW-NB15 column mapping ─────────────────────────────────────────────
@@ -210,6 +222,82 @@ def _build_features_from_dict(rows: dict, timestamps=None) -> np.ndarray:
     return X
 
 
+def _build_if_features_from_dict(
+    rows: dict,
+    timestamps=None,
+    df_for_ctx=None,
+) -> np.ndarray:
+    """
+    Construct 25-dim feature matrix for Isolation Forest.
+
+    First 20 dims = same as _build_features_from_dict().
+    Extra 5 dims (contextual — Fix 2):
+      20  syn_ack_ratio         SYN / (ACK + 1)                  flood detection
+      21  pkt_len_variance      Packet Length Variance (norm)     fragmented attacks
+      22  rst_flag_rate         RST / total_packets               TCP RST scanning
+      23  within_chunk_port_entropy  Shannon entropy of dst_port   port-scan detection
+                                   per src_ip group in this chunk
+      24  within_chunk_unique_dests  unique dst_ips per src_ip     lateral movement
+    """
+    import pandas as pd
+    from math import log2
+
+    # Build the base 20 features
+    X_base = _build_features_from_dict(rows, timestamps)
+    n = len(X_base)
+    X_if = np.zeros((n, IF_FEATURE_DIM), dtype=np.float32)
+    X_if[:, :FEATURE_DIM] = X_base
+
+    # ── Feature 20: SYN/ACK ratio ─────────────────────────────────────────────
+    syn = _safe_float(rows.get("syn_flag", pd.Series([0.0] * n))).values
+    ack = _safe_float(rows.get("ack_flag", pd.Series([0.0] * n))).values
+    fwd = _safe_float(rows.get("fwd_packets", pd.Series([1.0] * n))).values
+    bwd = _safe_float(rows.get("bwd_packets", pd.Series([0.0] * n))).values
+    X_if[:, 20] = np.clip(syn / np.maximum(ack + 1.0, 1.0), 0, 20) / 20.0
+
+    # ── Feature 21: Packet length variance (normalised) ───────────────────────
+    pkt_var = _safe_float(rows.get("pkt_len_var", pd.Series([0.0] * n))).values
+    X_if[:, 21] = np.clip(pkt_var / 1e6, 0, 1)
+
+    # ── Feature 22: RST flag rate ─────────────────────────────────────────────
+    rst = _safe_float(rows.get("rst_flag", pd.Series([0.0] * n))).values
+    total_pkts = np.maximum(fwd + bwd, 1.0)
+    X_if[:, 22] = np.clip(rst / total_pkts, 0, 1)
+
+    # ── Features 23–24: within-chunk src_ip aggregates ────────────────────────
+    # These use df_for_ctx (the raw DataFrame slice) for groupby operations.
+    if df_for_ctx is not None and len(df_for_ctx) > 0:
+        cols = df_for_ctx.columns.tolist()
+
+        # Resolve src_ip and dst_ip column names
+        src_ip_col = _find_col(cols, CICIDS_IF_EXTRA_COLUMNS["src_ip"])
+        dst_ip_col = _find_col(cols, CICIDS_IF_EXTRA_COLUMNS["dst_ip"])
+        dst_port_col = _find_col(cols, CICIDS_COLUMNS["dst_port"])
+
+        if src_ip_col and dst_port_col:
+            # Feature 23: Shannon entropy of dst_port per src_ip (in this chunk)
+            def _port_entropy(series):
+                vc = series.value_counts(normalize=True)
+                return float(-np.sum(vc.values * np.log2(np.maximum(vc.values, 1e-12))))
+
+            port_ent = df_for_ctx.groupby(src_ip_col)[dst_port_col].transform(
+                lambda x: _port_entropy(pd.to_numeric(x, errors="coerce").fillna(0))
+            ).values.astype(np.float32)
+            # Normalise: max entropy for 65536 ports ≈ 16 bits
+            X_if[:, 23] = np.clip(port_ent / 16.0, 0, 1)
+        # else stays 0.0
+
+        if src_ip_col and dst_ip_col:
+            # Feature 24: unique destination IPs per src_ip (in this chunk)
+            unique_d = df_for_ctx.groupby(src_ip_col)[dst_ip_col].transform("nunique").values
+            # Normalise: assume max ~1000 unique dests is extreme
+            X_if[:, 24] = np.clip(unique_d / 1000.0, 0, 1).astype(np.float32)
+        # else stays 0.0
+
+    X_if = np.nan_to_num(X_if, nan=0.0, posinf=1.0, neginf=0.0)
+    return X_if
+
+
 def _make_sequences(X: np.ndarray, window: int = SEQUENCE_LEN) -> np.ndarray:
     """
     Create sliding-window sequences of shape (N_windows, window, 20).
@@ -292,7 +380,13 @@ def preprocess_cicids(max_rows: Optional[int] = None) -> Tuple[np.ndarray, np.nd
                 benign_df = chunk[is_benign]
                 attack_df = chunk[~is_benign]
 
-                for df, store in [(benign_df, benign_chunks), (attack_df, attack_chunks)]:
+                benign_if_chunks: list = getattr(preprocess_cicids, "_if_benign", [])
+                attack_if_chunks: list = getattr(preprocess_cicids, "_if_attack", [])
+
+                for df, store, if_store in [
+                    (benign_df, benign_chunks, benign_if_chunks),
+                    (attack_df, attack_chunks, attack_if_chunks),
+                ]:
                     if len(df) == 0:
                         continue
                     row_dict = {}
@@ -305,8 +399,22 @@ def preprocess_cicids(max_rows: Optional[int] = None) -> Tuple[np.ndarray, np.nd
                     ts_col = _find_col(df.columns.tolist(), CICIDS_COLUMNS["timestamp"])
                     if ts_col:
                         ts_series = df[ts_col]
+
+                    # Base 20-feature matrix (LSTM-AE / Gaussian unchanged)
                     X = _build_features_from_dict(row_dict, ts_series)
                     store.append(X)
+
+                    # Extended 25-feature matrix for IF (Fix 2)
+                    # Also pass extra columns that are available in this chunk
+                    for extra_feat, extra_cands in CICIDS_IF_EXTRA_COLUMNS.items():
+                        col = _find_col(df.columns.tolist(), extra_cands)
+                        row_dict[extra_feat] = df[col] if col else pd.Series([0.0] * len(df))
+                    X_if = _build_if_features_from_dict(row_dict, ts_series, df_for_ctx=df)
+                    if_store.append(X_if)
+
+                # Store IF chunk lists back as function attributes
+                preprocess_cicids._if_benign = benign_if_chunks
+                preprocess_cicids._if_attack = attack_if_chunks
 
                 rows_seen += len(chunk)
                 if max_rows and rows_seen >= max_rows:
@@ -486,15 +594,33 @@ def main() -> None:
 
     # ── CICIDS-2017 ───────────────────────────────────────────────────────────
     if not args.unsw_only:
+        # Reset IF chunk accumulators before preprocessing
+        preprocess_cicids._if_benign = []
+        preprocess_cicids._if_attack = []
+
         cb, ca = preprocess_cicids(max_rows=args.max_rows)
         if len(cb) > 0:
             np.save(_DATA_PROC / "cicids_benign.npy", cb)
-            logger.info("  Saved cicids_benign.npy (%d rows)", len(cb))
+            logger.info("  Saved cicids_benign.npy (%d rows, 20 features)", len(cb))
             all_benign.append(cb)
         if len(ca) > 0:
             np.save(_DATA_PROC / "cicids_attack.npy",  ca)
-            logger.info("  Saved cicids_attack.npy  (%d rows)", len(ca))
+            logger.info("  Saved cicids_attack.npy  (%d rows, 20 features)", len(ca))
             all_attack.append(ca)
+
+        # Save IF-specific 25-feature files
+        if_benign = preprocess_cicids._if_benign
+        if_attack = preprocess_cicids._if_attack
+        if if_benign:
+            X_if_b = np.vstack(if_benign)
+            np.save(_DATA_PROC / "cicids_benign_if.npy", X_if_b)
+            logger.info("  Saved cicids_benign_if.npy (%d rows, %d features)",
+                        len(X_if_b), IF_FEATURE_DIM)
+        if if_attack:
+            X_if_a = np.vstack(if_attack)
+            np.save(_DATA_PROC / "cicids_attack_if.npy", X_if_a)
+            logger.info("  Saved cicids_attack_if.npy  (%d rows, %d features)",
+                        len(X_if_a), IF_FEATURE_DIM)
 
     # ── CIC-UNSW-NB15 ─────────────────────────────────────────────────────────
     if not args.cicids_only:
