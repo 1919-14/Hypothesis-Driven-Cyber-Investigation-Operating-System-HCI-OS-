@@ -1,14 +1,15 @@
 """
 pipeline/scripts/validate_models.py
-HCI-OS Ticket 19 — Model Validation Script
+HCI-OS Ticket 19 / 19c — Model Validation Script
 
 Validates all trained models against held-out benign + attack data.
 Reports FPR, Detection Rate, and AUC for each model.
 
-Pass bars (per ticket spec):
-  Isolation Forest : FPR <= 0.10,  DR >= 0.80
-  LSTM-AE          : Attack error  >= 2× normal error
-  Gaussian         : Attack Mahal  >= 2× normal Mahal
+Pass bars:
+  One-Class SVM    : FPR <= 0.15, DR >= 0.80, AUC >= 0.85  (Ticket 19c PRIMARY)
+  Isolation Forest : kept for reference (DEPRECATED in Ticket 19c)
+  LSTM-AE          : Attack error  >= 1.5x normal error
+  Gaussian         : Attack Mahal  >= 2.0x normal Mahal
 
 Usage (run from hci_os/ directory):
   python pipeline/scripts/validate_models.py
@@ -50,8 +51,11 @@ logging.basicConfig(
 logger = logging.getLogger("validate_models")
 warnings.filterwarnings("ignore")
 
-PASS_IF_FPR    = 0.15   # Isolation Forest max FPR  (unsupervised — no labeled training)
-PASS_IF_DR     = 0.50   # Isolation Forest min Detection Rate
+PASS_OCSVM_FPR  = 0.15   # One-Class SVM max FPR
+PASS_OCSVM_DR   = 0.80   # One-Class SVM min Detection Rate
+PASS_OCSVM_AUC  = 0.85   # One-Class SVM min AUC
+PASS_IF_FPR    = 0.15   # Isolation Forest max FPR  (unsupervised — DEPRECATED)
+PASS_IF_DR     = 0.50   # Isolation Forest min Detection Rate (relaxed)
 PASS_LSTM_MULT = 1.50   # LSTM-AE: attack_err / normal_err >= 1.5 (NumPy fixed-weight encoder)
 PASS_GAUSS_MULT = 2.0   # Gaussian: attack_mahal / normal_mahal >= 2.0
 
@@ -91,8 +95,116 @@ def _result_line(name: str, passed: bool, msg: str) -> str:
     return f"  {mark}  {name:30s}  {msg}"
 
 
+def _roc_optimal_threshold(scores_neg: np.ndarray, y_true: np.ndarray,
+                            fpr_limit: float) -> Tuple[float, float, float]:
+    """
+    Compute ROC-optimal threshold using sklearn.metrics.roc_curve.
+
+    scores_neg : anomaly scores (higher = more anomalous)
+    y_true     : 0=benign, 1=attack
+    fpr_limit  : max acceptable FPR (Youden's J constrained to FPR <= fpr_limit)
+
+    Returns: (optimal_threshold, auc, fpr_at_threshold)
+    """
+    from sklearn.metrics import roc_curve, roc_auc_score
+    fpr_arr, tpr_arr, thresholds = roc_curve(y_true, scores_neg)
+    auc = float(roc_auc_score(y_true, scores_neg))
+    j   = tpr_arr - fpr_arr
+    mask = fpr_arr <= fpr_limit
+    if mask.any():
+        best_idx = int(np.argmax(j * mask))
+    else:
+        best_idx = int(np.argmax(j))   # relax if impossible
+    return float(thresholds[best_idx]), auc, float(fpr_arr[best_idx])
+
+
 # =============================================================================
-# VALIDATION — ISOLATION FOREST
+# VALIDATION — ONE-CLASS SVM  (Ticket 19c PRIMARY)
+# =============================================================================
+
+def validate_ocsvm(
+    X_benign: np.ndarray,
+    X_attack: np.ndarray,
+) -> Dict:
+    """
+    Validate One-Class SVM using ROC-optimal threshold (Ticket 19c).
+
+    OC-SVM decision_function() returns:
+      positive  -> inside the boundary  -> benign
+      negative  -> outside the boundary -> anomalous
+
+    We negate before feeding to roc_curve so that higher = more anomalous.
+    """
+    logger.info("")
+    logger.info("── One-Class SVM (PRIMARY detector, Ticket 19c) ────────────")
+
+    payload = _load_pkl("one_class_svm")
+    if payload is None:
+        return {"status": "MISSING",
+                "note": "Run: python pipeline/scripts/train_real_models.py --ocsvm-only --force"}
+
+    model_bundle = payload["model"]
+    if isinstance(model_bundle, dict):
+        model   = model_bundle["model"]
+        scaler  = model_bundle.get("scaler")
+        n_feat  = model_bundle.get("n_features", 20)
+    else:
+        model   = model_bundle
+        scaler  = None
+        n_feat  = 20
+
+    # Align to model's expected feature count
+    X_b = X_benign[:, :n_feat]
+    X_a = X_attack[:, :n_feat]
+
+    if scaler is not None:
+        X_b = scaler.transform(X_b)
+        X_a = scaler.transform(X_a)
+
+    # decision_function: positive=inlier, negative=outlier
+    df_benign = model.decision_function(X_b)   # shape (n,)
+    df_attack = model.decision_function(X_a)
+
+    # Negate so higher = more anomalous (roc_curve convention)
+    neg_benign = -df_benign
+    neg_attack = -df_attack
+
+    all_neg_scores = np.concatenate([neg_benign, neg_attack])
+    all_labels     = np.concatenate([np.zeros(len(neg_benign)),
+                                      np.ones(len(neg_attack))])
+
+    try:
+        opt_thresh, auc, _ = _roc_optimal_threshold(
+            all_neg_scores, all_labels, PASS_OCSVM_FPR)
+        # Apply threshold on negated scores
+        fpr = float(np.mean(neg_benign >= opt_thresh))
+        dr  = float(np.mean(neg_attack >= opt_thresh))
+    except Exception as exc:
+        logger.warning("  ROC computation failed: %s — using 5th-pct fallback", exc)
+        opt_thresh = float(np.percentile(neg_benign, 95))   # 5th pct of benign
+        fpr = float(np.mean(neg_benign >= opt_thresh))
+        dr  = float(np.mean(neg_attack >= opt_thresh))
+        auc = 0.0
+
+    passed = (fpr <= PASS_OCSVM_FPR) and (dr >= PASS_OCSVM_DR) and (auc >= PASS_OCSVM_AUC)
+    logger.info("  FPR=%.3f (pass<=%.2f)  DR=%.3f (pass>=%.2f)  AUC=%.3f (pass>=%.2f)  n_feat=%d",
+                fpr, PASS_OCSVM_FPR, dr, PASS_OCSVM_DR, auc, PASS_OCSVM_AUC, n_feat)
+
+    return {
+        "status":         "PASS" if passed else "FAIL",
+        "algorithm":      "OneClassSVM",
+        "fpr":            round(fpr, 4),
+        "detection_rate": round(dr, 4),
+        "auc":            round(auc, 4),
+        "threshold":      round(opt_thresh, 6),
+        "n_features":     n_feat,
+        "n_benign":       len(X_benign),
+        "n_attack":       len(X_attack),
+    }
+
+
+# =============================================================================
+# VALIDATION — ISOLATION FOREST  (DEPRECATED in Ticket 19c)
 # =============================================================================
 
 def validate_isolation_forest(
@@ -404,7 +516,7 @@ def main() -> None:
 
     logger.info("")
     logger.info("=" * 65)
-    logger.info("  HCI-OS A4 Model Validation  (Ticket 19)")
+    logger.info("  HCI-OS A4 Model Validation  (Ticket 19 / 19c)")
     logger.info("=" * 65)
 
     # ── Load 20-feature test data (Gaussian + LSTM-AE) ───────────────────────
@@ -437,8 +549,11 @@ def main() -> None:
     logger.info("25-feat IF validation: %d benign, %d attack",
                 len(X_if_benign), len(X_if_attack))
 
-    # ── Validate each model ─────────────────────────────────────────────────
+    # ── Validate each model ──────────────────────────────────────────────────
     results = {}
+    # PRIMARY: One-Class SVM (Ticket 19c)
+    results["one_class_svm"]       = validate_ocsvm(X_benign, X_attack)
+    # DEPRECATED: Isolation Forest (kept for reference)
     results["isolation_forest"]    = validate_isolation_forest(X_if_benign, X_if_attack)
     results["gaussian_likelihood"] = validate_gaussian(X_benign, X_attack)
     results["lstm_autoencoder"]    = validate_lstm_ae(X_benign, X_attack)

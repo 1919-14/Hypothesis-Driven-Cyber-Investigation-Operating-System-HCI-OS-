@@ -7,10 +7,11 @@ that A3 could not resolve (Path 3 -- no cache hit).
 
 Pipeline position: A3 (Path 3 novel) --> [A4] --> A5/A6/A7
 
---- ML Ensemble ---
-1. Isolation Forest      -- point anomalies (scikit-learn, REAL)
+--- ML Ensemble (Ticket 19c) ---
+1. One-Class SVM         -- boundary-based anomaly detection (PRIMARY, replaces IF)
 2. LSTM-Autoencoder      -- temporal anomalies (SCOPE CUT: Z-score rolling baseline)
-3. VAE                   -- probabilistic + epistemic uncertainty (SCOPE CUT: Gaussian likelihood)
+3. VAE / Gaussian        -- probabilistic + epistemic uncertainty
+4. Cross-Attention Fusion-- numpy multi-head attention over 4 signal types
 
 --- Key Features ---
 - Dual Baseline: Generic (CICIDS w=0.4) + Org-specific (rolling w=0.6)
@@ -48,14 +49,20 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
-# Isolation Forest -- real scikit-learn implementation
+# Isolation Forest -- real scikit-learn implementation (kept for org-specific baseline)
 try:
     from sklearn.ensemble import IsolationForest
     from sklearn.preprocessing import StandardScaler
-
     _HAS_SKLEARN = True
 except ImportError:
     _HAS_SKLEARN = False
+
+# One-Class SVM -- Ticket 19c primary detector
+try:
+    from sklearn.svm import OneClassSVM as _OneClassSVM
+    _HAS_OCSVM = True
+except ImportError:
+    _HAS_OCSVM = False
 
 # ─── Logging ────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
@@ -471,6 +478,78 @@ class IsolationForestDetector:
 
 
 # =============================================================================
+# ONE-CLASS SVM DETECTOR  (Ticket 19c — replaces Isolation Forest)
+# =============================================================================
+
+class OneClassSVMDetector:
+    """
+    One-Class SVM anomaly detector.
+
+    Wraps a pre-trained sklearn OneClassSVM loaded from one_class_svm.pkl.
+    Uses decision_function() output converted to [0,1] via sigmoid so that:
+      - Benign (inside boundary): decision_function > 0 → sigmoid ≈ 0.5-≈0 (low anomaly)
+      - Attack (outside boundary): decision_function < 0 → sigmoid > 0.5 (high anomaly)
+
+    Formula: anomaly_score = sigmoid(-decision_function) = 1 / (1 + exp(df))
+    This maps  df >> 0 (deep inside) → ~0,  df << 0 (far outside) → ~1.
+    """
+
+    def __init__(self):
+        self._model   = None
+        self._scaler  = None
+        self._n_feat  = 20
+        self._is_loaded = False
+
+    def load(self, payload: dict) -> None:
+        """
+        Load from the dict stored inside one_class_svm.pkl.
+
+        payload["model"] is the inner dict produced by _save_pkl():
+          {"model": OneClassSVM, "scaler": StandardScaler,
+           "threshold": float, "n_features": int}
+        """
+        bundle = payload.get("model", {})
+        if isinstance(bundle, dict):
+            self._model  = bundle.get("model")
+            self._scaler = bundle.get("scaler")
+            self._n_feat = bundle.get("n_features", 20)
+        else:
+            self._model  = bundle   # bare model (fallback)
+        self._is_loaded = self._model is not None
+        if self._is_loaded:
+            logger.info(
+                "OneClassSVMDetector: Loaded  n_features=%d", self._n_feat)
+
+    def score(self, features: np.ndarray) -> float:
+        """
+        Score a single feature vector. Returns anomaly score in [0, 1].
+        Higher = more anomalous.
+
+        Uses sigmoid(-df) where df = decision_function output.
+        """
+        if not self._is_loaded or self._model is None:
+            return 0.5   # neutral when not loaded
+
+        # Trim / pad to expected feature count
+        feat = features[:self._n_feat]
+        if len(feat) < self._n_feat:
+            feat = np.pad(feat, (0, self._n_feat - len(feat)))
+
+        feat_2d = feat.reshape(1, -1)
+        if self._scaler is not None:
+            feat_2d = self._scaler.transform(feat_2d)
+
+        df = float(self._model.decision_function(feat_2d)[0])
+        # sigmoid(-df): inside boundary (df>0) → low score; outside (df<0) → high score
+        anomaly_score = 1.0 / (1.0 + np.exp(df))
+        return float(np.clip(anomaly_score, 0.0, 1.0))
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._is_loaded
+
+
+# =============================================================================
 # LSTM-AE STUB (Z-Score Rolling Baseline)
 # =============================================================================
 
@@ -856,16 +935,17 @@ class A4AnomalyDetector:
         self.org_weight = org_weight
 
         # ── ML Models ─────────────────────────────────────────────────────
-        self.isolation_forest = IsolationForestDetector()
-        self.temporal_detector = TemporalAnomalyDetector()
+        self.ocsvm              = OneClassSVMDetector()   # Ticket 19c PRIMARY
+        self.isolation_forest   = IsolationForestDetector()   # kept for org baseline
+        self.temporal_detector     = TemporalAnomalyDetector()
         self.probabilistic_detector = ProbabilisticAnomalyDetector()
-        self.cross_attention = CrossAttentionFusion()
-        self.embedder = BehaviorEmbedder()
+        self.cross_attention       = CrossAttentionFusion()
+        self.embedder              = BehaviorEmbedder()
 
-        # ── Org-specific baseline (online learning) ───────────────────────
+        # ── Org-specific baseline (online learning) ────────────────────────
         self._org_isolation_forest = IsolationForestDetector()
         self._org_samples: List[np.ndarray] = []
-        self._org_retrain_interval: int = 100  # retrain after this many new samples
+        self._org_retrain_interval: int = 100
         self._org_trained: bool = False
 
         # ── Processing log ────────────────────────────────────────────────
@@ -898,6 +978,60 @@ class A4AnomalyDetector:
         self.probabilistic_detector.train(training_data)
 
         logger.info("A4: Generic baseline training complete")
+
+    def load_real_models(self, models_dir: Optional[str] = None) -> Dict[str, bool]:
+        """
+        Load pre-trained real models from the pipeline/models/ directory.
+
+        Tries to load:
+          one_class_svm.pkl      — PRIMARY anomaly detector (Ticket 19c)
+          gaussian_likelihood.pkl— probabilistic baseline
+          lstm_autoencoder.pkl   — temporal baseline
+
+        Returns dict of {model_name: loaded_successfully}.
+        """
+        import pickle
+        base = Path(models_dir) if models_dir else (
+            Path(__file__).parent.parent / "data" / "models")
+
+        loaded = {}
+
+        # ── One-Class SVM (PRIMARY) ──────────────────────────────────────
+        ocsvm_path = base / "one_class_svm.pkl"
+        if ocsvm_path.exists():
+            try:
+                with open(ocsvm_path, "rb") as f:
+                    payload = pickle.load(f)
+                self.ocsvm.load(payload)
+                loaded["one_class_svm"] = True
+                logger.info("A4: Loaded one_class_svm.pkl")
+            except Exception as exc:
+                logger.warning("A4: Failed to load one_class_svm.pkl: %s", exc)
+                loaded["one_class_svm"] = False
+        else:
+            logger.warning("A4: one_class_svm.pkl not found at %s", ocsvm_path)
+            loaded["one_class_svm"] = False
+
+        # ── Gaussian Likelihood ───────────────────────────────────────────
+        gauss_path = base / "gaussian_likelihood.pkl"
+        if gauss_path.exists():
+            try:
+                with open(gauss_path, "rb") as f:
+                    g = pickle.load(f)
+                g_data = g.get("model", g) if isinstance(g, dict) else g
+                if isinstance(g_data, dict):
+                    self.probabilistic_detector._mean    = g_data["mean"]
+                    self.probabilistic_detector._cov_inv = g_data["cov_inv"]
+                    self.probabilistic_detector._training_max_distance = (
+                        g_data["training_max_distance"])
+                    self.probabilistic_detector._is_trained = True
+                    loaded["gaussian"] = True
+                    logger.info("A4: Loaded gaussian_likelihood.pkl")
+            except Exception as exc:
+                logger.warning("A4: Failed to load gaussian_likelihood.pkl: %s", exc)
+                loaded["gaussian"] = False
+
+        return loaded
 
     def _update_org_baseline(self, features: np.ndarray) -> None:
         """
@@ -972,8 +1106,13 @@ class A4AnomalyDetector:
         embedding = self.embedder.embed(features)
         evidence_dict["behavior_embedding"] = embedding.tolist()
 
-        # ── 3. Isolation Forest (Generic Baseline) ───────────────────────
-        isolation_score = self.isolation_forest.score(features)
+        # ── 3. Primary Anomaly Score (OC-SVM or IF fallback) ─────────────────
+        if self.ocsvm.is_loaded:
+            # Ticket 19c: use One-Class SVM as primary detector
+            isolation_score = self.ocsvm.score(features)
+        else:
+            # Fallback to synthetic-trained Isolation Forest
+            isolation_score = self.isolation_forest.score(features)
 
         # ── 4. Temporal Anomaly (Z-score, org-specific) ──────────────────
         temporal_score = self.temporal_detector.update_and_score(asset_id, features)
@@ -1116,9 +1255,10 @@ class A4AnomalyDetector:
             "max_score": round(max(scores), 4),
             "min_score": round(min(scores), 4),
             "mode": self.mode,
-            "generic_trained": self.isolation_forest.is_trained,
-            "org_trained": self._org_trained,
-            "org_samples": len(self._org_samples),
+            "generic_trained": self.ocsvm.is_loaded or self.isolation_forest.is_trained,
+            "ocsvm_loaded":     self.ocsvm.is_loaded,
+            "org_trained":      self._org_trained,
+            "org_samples":      len(self._org_samples),
         }
 
 
