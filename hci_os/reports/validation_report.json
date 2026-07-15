@@ -1,0 +1,31 @@
+{
+  "isolation_forest": {
+    "status": "FAIL",
+    "fpr": 0.1478,
+    "detection_rate": 0.001,
+    "auc": 0.5649,
+    "threshold": -0.55494,
+    "n_benign": 10000,
+    "n_attack": 20000
+  },
+  "gaussian_likelihood": {
+    "status": "PASS",
+    "mean_benign_mahal": 2.968,
+    "mean_attack_mahal": 10.4646,
+    "attack_vs_benign_ratio": 3.526,
+    "auc": 0.7641,
+    "n_benign": 10000,
+    "n_attack": 20000
+  },
+  "lstm_autoencoder": {
+    "status": "PASS",
+    "mean_benign_mse": 0.216355,
+    "mean_attack_mse": 0.360337,
+    "attack_vs_benign_ratio": 1.665,
+    "threshold": 0.05357,
+    "auc": 0.6601,
+    "n_benign_seqs": 500,
+    "n_attack_seqs": 500
+  },
+  "validated_at": "2026-07-15T03:28:09.711708+00:00Z"
+}
