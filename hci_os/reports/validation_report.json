@@ -1,31 +1,43 @@
 {
-  "isolation_forest": {
-    "status": "FAIL",
-    "fpr": 0.1478,
-    "detection_rate": 0.001,
-    "auc": 0.5649,
-    "threshold": -0.55494,
-    "n_benign": 10000,
+  "one_class_svm": {
+    "status": "PASS",
+    "algorithm": "OneClassSVM",
+    "fpr": 0.1499,
+    "detection_rate": 0.9652,
+    "auc": 0.9567,
+    "threshold": -0.312947,
+    "n_features": 20,
+    "n_benign": 20000,
     "n_attack": 20000
+  },
+  "isolation_forest": {
+    "status": "PASS",
+    "fpr": 0.066,
+    "detection_rate": 0.6277,
+    "auc": 0.8037,
+    "threshold": -0.60232,
+    "n_features": 20,
+    "n_benign": 10000,
+    "n_attack": 10000
   },
   "gaussian_likelihood": {
     "status": "PASS",
-    "mean_benign_mahal": 2.968,
-    "mean_attack_mahal": 10.4646,
-    "attack_vs_benign_ratio": 3.526,
-    "auc": 0.7641,
-    "n_benign": 10000,
+    "mean_benign_mahal": 3.0574,
+    "mean_attack_mahal": 31.5904,
+    "attack_vs_benign_ratio": 10.332,
+    "auc": 0.8574,
+    "n_benign": 20000,
     "n_attack": 20000
   },
   "lstm_autoencoder": {
     "status": "PASS",
-    "mean_benign_mse": 0.216355,
-    "mean_attack_mse": 0.360337,
-    "attack_vs_benign_ratio": 1.665,
-    "threshold": 0.05357,
-    "auc": 0.6601,
+    "mean_benign_mse": 0.026284,
+    "mean_attack_mse": 0.070423,
+    "attack_vs_benign_ratio": 2.679,
+    "threshold": 0.094371,
+    "auc": 0.7448,
     "n_benign_seqs": 500,
     "n_attack_seqs": 500
   },
-  "validated_at": "2026-07-15T03:28:09.711708+00:00Z"
+  "validated_at": "2026-07-16T18:03:21.965449+00:00Z"
 }

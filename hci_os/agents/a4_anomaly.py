@@ -498,6 +498,7 @@ class OneClassSVMDetector:
         self._model   = None
         self._scaler  = None
         self._n_feat  = 20
+        self._score_std = 1.0
         self._is_loaded = False
 
     def load(self, payload: dict) -> None:
@@ -506,26 +507,30 @@ class OneClassSVMDetector:
 
         payload["model"] is the inner dict produced by _save_pkl():
           {"model": OneClassSVM, "scaler": StandardScaler,
-           "threshold": float, "n_features": int}
+           "threshold": float, "n_features": int, "score_std": float}
         """
         bundle = payload.get("model", {})
         if isinstance(bundle, dict):
             self._model  = bundle.get("model")
             self._scaler = bundle.get("scaler")
             self._n_feat = bundle.get("n_features", 20)
+            self._score_std = bundle.get("score_std", 1.0)
         else:
             self._model  = bundle   # bare model (fallback)
+            self._score_std = 1.0
         self._is_loaded = self._model is not None
         if self._is_loaded:
             logger.info(
-                "OneClassSVMDetector: Loaded  n_features=%d", self._n_feat)
+                "OneClassSVMDetector: Loaded  n_features=%d  score_std=%.6f",
+                self._n_feat, self._score_std,
+            )
 
     def score(self, features: np.ndarray) -> float:
         """
         Score a single feature vector. Returns anomaly score in [0, 1].
         Higher = more anomalous.
 
-        Uses sigmoid(-df) where df = decision_function output.
+        Uses sigmoid(-df / score_std) where df = decision_function output.
         """
         if not self._is_loaded or self._model is None:
             return 0.5   # neutral when not loaded
@@ -540,8 +545,9 @@ class OneClassSVMDetector:
             feat_2d = self._scaler.transform(feat_2d)
 
         df = float(self._model.decision_function(feat_2d)[0])
-        # sigmoid(-df): inside boundary (df>0) → low score; outside (df<0) → high score
-        anomaly_score = 1.0 / (1.0 + np.exp(df))
+        # sigmoid(-df / score_std): inside boundary (df>0) → low score; outside (df<0) → high score
+        scaled_df = df / self._score_std
+        anomaly_score = 1.0 / (1.0 + np.exp(scaled_df))
         return float(np.clip(anomaly_score, 0.0, 1.0))
 
     @property
@@ -1275,6 +1281,7 @@ def get_detector(**kwargs) -> A4AnomalyDetector:
     if _default_detector is None:
         _default_detector = A4AnomalyDetector(**kwargs)
         _default_detector.train()
+        _default_detector.load_real_models()
     return _default_detector
 
 

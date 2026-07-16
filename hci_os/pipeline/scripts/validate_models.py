@@ -100,21 +100,29 @@ def _roc_optimal_threshold(scores_neg: np.ndarray, y_true: np.ndarray,
     """
     Compute ROC-optimal threshold using sklearn.metrics.roc_curve.
 
+    Strategy: find the threshold that maximises Detection Rate (TPR)
+    while keeping FPR <= fpr_limit. This is more robust than Youden's J
+    when scores have moderate separation (AUC 0.65-0.85).
+
     scores_neg : anomaly scores (higher = more anomalous)
     y_true     : 0=benign, 1=attack
-    fpr_limit  : max acceptable FPR (Youden's J constrained to FPR <= fpr_limit)
+    fpr_limit  : max acceptable FPR
 
     Returns: (optimal_threshold, auc, fpr_at_threshold)
     """
     from sklearn.metrics import roc_curve, roc_auc_score
     fpr_arr, tpr_arr, thresholds = roc_curve(y_true, scores_neg)
     auc = float(roc_auc_score(y_true, scores_neg))
-    j   = tpr_arr - fpr_arr
+
     mask = fpr_arr <= fpr_limit
     if mask.any():
-        best_idx = int(np.argmax(j * mask))
+        # Among all thresholds that satisfy FPR <= limit,
+        # pick the one with the highest TPR (Detection Rate).
+        valid_tpr = np.where(mask, tpr_arr, -1.0)
+        best_idx = int(np.argmax(valid_tpr))
     else:
-        best_idx = int(np.argmax(j))   # relax if impossible
+        # FPR limit unachievable — fall back to Youden's J (best tradeoff)
+        best_idx = int(np.argmax(tpr_arr - fpr_arr))
     return float(thresholds[best_idx]), auc, float(fpr_arr[best_idx])
 
 
@@ -136,7 +144,7 @@ def validate_ocsvm(
     We negate before feeding to roc_curve so that higher = more anomalous.
     """
     logger.info("")
-    logger.info("── One-Class SVM (PRIMARY detector, Ticket 19c) ────────────")
+    logger.info("== One-Class SVM (PRIMARY detector, Ticket 19c) ===================")
 
     payload = _load_pkl("one_class_svm")
     if payload is None:
@@ -216,7 +224,7 @@ def validate_isolation_forest(
     Uses ROC-optimal threshold from sklearn.metrics.roc_curve (Fix 3).
     """
     logger.info("")
-    logger.info("── Isolation Forest (25-feature, ROC-optimal threshold) ─────")
+    logger.info("== Isolation Forest (25-feature, ROC-optimal threshold) ===========")
 
     payload = _load_pkl("isolation_forest")
     if payload is None:
@@ -304,7 +312,7 @@ def validate_gaussian(
     X_attack: np.ndarray,
 ) -> Dict:
     logger.info("")
-    logger.info("── Gaussian Likelihood ───────────────────────────────")
+    logger.info("== Gaussian Likelihood =============================================")
 
     payload = _load_pkl("gaussian_likelihood")
     if payload is None:
@@ -369,7 +377,7 @@ def validate_lstm_ae(
     n_seqs:  int = 500,
 ) -> Dict:
     logger.info("")
-    logger.info("── LSTM-Autoencoder ──────────────────────────────────")
+    logger.info("== LSTM-Autoencoder ================================================")
 
     payload = _load_pkl("lstm_autoencoder")
     if payload is None:

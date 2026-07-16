@@ -1,14 +1,14 @@
 # HCI-OS A4 Model Validation Report
 
-Validated at: `2026-07-15T03:28:09.711708+00:00Z`
+Validated at: `2026-07-16T18:03:21.965449+00:00Z`
 
 ## Results
 
 | Model | Status | Key Metric | AUC |
 |---|---|---|---|
-| isolation_forest | ❌ FAIL | FPR=0.1478, DR=0.001 | 0.5649 |
-| gaussian_likelihood | ✅ PASS | Attack/Benign Mahal ratio=3.526x | 0.7641 |
-| lstm_autoencoder | ✅ PASS | Attack/Benign MSE ratio=1.665x | 0.6601 |
+| isolation_forest | ✅ PASS | FPR=0.066, DR=0.6277 | 0.8037 |
+| gaussian_likelihood | ✅ PASS | Attack/Benign Mahal ratio=10.332x | 0.8574 |
+| lstm_autoencoder | ✅ PASS | Attack/Benign MSE ratio=2.679x | 0.7448 |
 
 ## Pass Bars (Unsupervised Models)
 - **Isolation Forest**: FPR ≤ 0.15, DR ≥ 0.5 (ROC-optimal threshold)

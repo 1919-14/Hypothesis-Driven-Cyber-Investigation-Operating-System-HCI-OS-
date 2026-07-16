@@ -46,3 +46,7 @@ htmlcov/
 
 # Benchmark outputs
 benchmark/results/
+
+# Raw and processed data
+data/real_data/
+data/processed/

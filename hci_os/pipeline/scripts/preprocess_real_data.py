@@ -82,40 +82,39 @@ SEQUENCE_LEN = 10    # sliding window length for LSTM-AE
 
 # ── CICIDS-2017 column mapping (base 20 features) ────────────────────────────
 CICIDS_COLUMNS = {
-    "bytes":          [" Total Length of Fwd Packets", "Total Length of Fwd Packet",
-                       "TotalLengthofFwdPackets", "totlenFwdPkts"],
-    "src_port":       [" Source Port", "Src Port", "SourcePort"],
-    "dst_port":       [" Destination Port", "Dst Port", "DestinationPort"],
-    "flow_duration":  [" Flow Duration", "Flow Duration", "FlowDuration"],
-    "fwd_packets":    [" Total Fwd Packets", "Total Fwd Packet",
-                       "TotalFwdPackets", "totFwdPkts"],
-    "bwd_packets":    [" Total Backward Packets", "Total Bwd packets",
-                       "TotalBwdPackets", "totBwdPkts"],
-    "protocol":       [" Protocol", "Protocol"],
-    "timestamp":      [" Timestamp", "Timestamp"],
-    "label":          [" Label", "Label"],
+    "bytes":          ["total length of fwd packets", "total length of fwd packet",
+                       "totallengthoffwdpackets", "totlenfwdpkts"],
+    "src_port":       ["source port", "src port", "sourceport"],
+    "dst_port":       ["destination port", "dst port", "destinationport"],
+    "flow_duration":  ["flow duration", "flowduration"],
+    "fwd_packets":    ["total fwd packets", "total fwd packet",
+                       "totalfwdpackets", "totfwdpkts"],
+    "bwd_packets":    ["total backward packets", "total bwd packets",
+                       "totalbwdpackets", "totbwdpkts"],
+    "protocol":       ["protocol"],
+    "timestamp":      ["timestamp"],
+    "label":          ["label"],
 }
 
 # ── CICIDS-2017 extended columns (used only for IF 25-feature set) ────────────
 CICIDS_IF_EXTRA_COLUMNS = {
-    "syn_flag":    [" SYN Flag Count", "SYN Flag Count", "SYNFlagCount"],
-    "ack_flag":    [" ACK Flag Count", "ACK Flag Count", "ACKFlagCount"],
-    "rst_flag":    [" RST Flag Count", "RST Flag Count", "RSTFlagCount"],
-    "pkt_len_var": [" Packet Length Variance", "Packet Length Variance",
-                   "PacketLengthVariance"],
-    "src_ip":      [" Source IP", "Src IP", "SourceIP"],
-    "dst_ip":      [" Destination IP", "Dst IP", "DestinationIP"],
+    "syn_flag":    ["syn flag count", "synflagcount"],
+    "ack_flag":    ["ack flag count", "ackflagcount"],
+    "rst_flag":    ["rst flag count", "rstflagcount"],
+    "pkt_len_var": ["packet length variance", "packetlengthvariance"],
+    "src_ip":      ["source ip", "src ip", "sourceip"],
+    "dst_ip":      ["destination ip", "dst ip", "destinationip"],
 }
 
 # ── CIC-UNSW-NB15 column mapping ─────────────────────────────────────────────
 UNSW_COLUMNS = {
-    "bytes":         ["sbytes", "dbytes", "spkts"],
-    "src_port":      ["sport"],
-    "dst_port":      ["dport"],
-    "flow_duration": ["dur"],
-    "fwd_packets":   ["spkts"],
-    "bwd_packets":   ["dpkts"],
-    "protocol":      ["proto"],
+    "bytes":         ["sbytes", "dbytes", "spkts", "total length of fwd packet", "total length of fwd packets", "totallengthoffwdpackets", "totlenfwdpkts"],
+    "src_port":      ["sport", "source port", "src port", "sourceport"],
+    "dst_port":      ["dport", "destination port", "dst port", "destinationport"],
+    "flow_duration": ["dur", "flow duration", "flowduration"],
+    "fwd_packets":   ["spkts", "total fwd packets", "total fwd packet", "totalfwdpackets", "totfwdpkts"],
+    "bwd_packets":   ["dpkts", "total backward packets", "total bwd packets", "totalbwdpackets", "totbwdpkts"],
+    "protocol":      ["proto", "protocol"],
     "label":         ["label"],
 }
 
@@ -280,18 +279,20 @@ def _build_if_features_from_dict(
                 vc = series.value_counts(normalize=True)
                 return float(-np.sum(vc.values * np.log2(np.maximum(vc.values, 1e-12))))
 
-            port_ent = df_for_ctx.groupby(src_ip_col)[dst_port_col].transform(
+            port_ent_agg = df_for_ctx.groupby(src_ip_col)[dst_port_col].apply(
                 lambda x: _port_entropy(pd.to_numeric(x, errors="coerce").fillna(0))
-            ).values.astype(np.float32)
+            )
+            port_ent = df_for_ctx[src_ip_col].map(port_ent_agg).values.astype(np.float32)
             # Normalise: max entropy for 65536 ports ≈ 16 bits
             X_if[:, 23] = np.clip(port_ent / 16.0, 0, 1)
         # else stays 0.0
 
         if src_ip_col and dst_ip_col:
             # Feature 24: unique destination IPs per src_ip (in this chunk)
-            unique_d = df_for_ctx.groupby(src_ip_col)[dst_ip_col].transform("nunique").values
+            unique_d_agg = df_for_ctx.groupby(src_ip_col)[dst_ip_col].nunique()
+            unique_d = df_for_ctx[src_ip_col].map(unique_d_agg).values.astype(np.float32)
             # Normalise: assume max ~1000 unique dests is extreme
-            X_if[:, 24] = np.clip(unique_d / 1000.0, 0, 1).astype(np.float32)
+            X_if[:, 24] = np.clip(unique_d / 1000.0, 0, 1)
         # else stays 0.0
 
     X_if = np.nan_to_num(X_if, nan=0.0, posinf=1.0, neginf=0.0)
@@ -368,7 +369,7 @@ def preprocess_cicids(max_rows: Optional[int] = None) -> Tuple[np.ndarray, np.nd
                 encoding="utf-8",
                 encoding_errors="replace",
             ):
-                chunk.columns = [c.strip() for c in chunk.columns]
+                chunk.columns = [c.strip().lower() for c in chunk.columns]
 
                 # Find label column
                 label_col = _find_col(chunk.columns.tolist(), CICIDS_COLUMNS["label"])
@@ -422,7 +423,7 @@ def preprocess_cicids(max_rows: Optional[int] = None) -> Tuple[np.ndarray, np.nd
                     break
 
         except Exception as exc:
-            logger.warning("  Error reading %s: %s", fname, exc)
+            logger.exception("  Error reading %s", fname)
             continue
 
         if max_rows and rows_seen >= max_rows:
@@ -473,8 +474,8 @@ def preprocess_unsw(max_rows: Optional[int] = None) -> Tuple[np.ndarray, np.ndar
     # Load labels in full (only ~895 KB)
     if label_path.exists():
         try:
-            labels_df = pd.read_csv(label_path, header=None, names=["label"])
-            label_array = labels_df["label"].values
+            labels_df = pd.read_csv(label_path)
+            label_array = pd.to_numeric(labels_df.iloc[:, 0], errors="coerce").fillna(-1).astype(int).values
             logger.info("  Labels loaded: %d entries", len(label_array))
         except Exception as exc:
             logger.warning("  Failed to read Label.csv: %s — inferring from Data.csv", exc)
