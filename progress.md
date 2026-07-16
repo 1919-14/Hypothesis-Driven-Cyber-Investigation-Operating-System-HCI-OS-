@@ -923,3 +923,29 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 
 - Launch API server (`uvicorn app:app --port 8000`) and the Vite frontend (`npm run dev` in `ET_UI`) to explore incident timelines, GNN correlation graph, and AISOC chatbot.
 - Prep demo scripts and walkthrough recordings for Round 2 prototype presentation.
+
+---
+
+## [2026-07-17 01:15] — BUILD & DOCS — TICKET 16 COMPLETE: Business Impact & Cost Case (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- Created a comprehensive business impact, cost-case, and ROI analysis document at [`docs/business_impact.md`](file:///c:/Users/saina/Videos/ET%20Hackathon%202.0/docs/business_impact.md) to serve as pitch deck support for PS #7.
+- Defined economic estimates for the status quo (AIIMS Delhi at ₹50–100cr, CBSE at ₹20–50cr, NVD/IBM statistics, and CERT-In systemic cost of ₹10,000+cr/year).
+- Outlined budget projections for running HCI-OS (~₹50 lakh/year total: ₹8–10 lakh compute, ₹5–7 lakh storage, ₹30–40 lakh SOC labor).
+- Conducted financial metrics calculations, demonstrating a 20,000x ROI (raw systemic) and a 1,000x risk-adjusted ROI (accounting for a conservative 5% occurrence probability).
+- Conducted break-even analysis showing that preventing just 1 major incident every 100+ years covers the operating costs of HCI-OS.
+- Documented linear scalability projections (₹5 lakh incremental cost per 1,000 additional assets).
+- Elaborated on the value of automating the 6-hour CERT-In compliance reporting mandate in seconds.
+- Added a financial glossary for ROI, CAPEX, and OPEX terms to assist non-financial evaluators.
+- Included the verbatim pitch-ready deck paragraph as requested.
+
+**Files created/modified:**
+
+- `docs/business_impact.md` — ✅ New (Business Impact & Cost Case analysis)
+
+**Next Steps:**
+
+- Proceed to Ticket 17 (5-Minute Demo Script) and Ticket 18 (Q&A Playbook).
