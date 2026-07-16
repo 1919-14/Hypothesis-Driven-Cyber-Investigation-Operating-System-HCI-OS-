@@ -180,7 +180,7 @@ class TestA5GATModel:
         num_types = max(len(node_types), 16)
         x, edge_index, _, y = a5._to_tensors(graph_data, id_to_idx, node_types)
 
-        model = a5.GAT(in_channels=num_types, hidden_channels=32, out_channels=2)
+        model = a5.GAT(in_channels=x.shape[1], hidden_channels=32, out_channels=2)
         out, attn = model(x, edge_index)
 
         assert out.shape[0] == x.shape[0]   # one output per node
