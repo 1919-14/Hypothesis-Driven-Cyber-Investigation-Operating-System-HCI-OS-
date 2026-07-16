@@ -82,12 +82,13 @@ def main() -> None:
     results = {}
     
     # 1. Evaluate GAT
-    gat_path = MODELS_DIR / "gat.pt"
+    gat_path = MODELS_DIR / "gat_model.pt"
     if gat_path.exists():
         logger.info("Evaluating GAT model...")
         checkpoint = torch.load(gat_path, map_location=DEVICE)
         model = GAT(in_channels=checkpoint["in_ch"], hidden_channels=32, out_channels=2).to(DEVICE)
-        model.load_state_dict(checkpoint["model_state"])
+        state = checkpoint.get("model_state_dict", checkpoint.get("model_state"))
+        model.load_state_dict(state)
         model.eval()
         
         with torch.no_grad():
@@ -97,12 +98,13 @@ def main() -> None:
         logger.warning("GAT model checkpoint not found at %s", gat_path)
 
     # 2. Evaluate GraphSAGE
-    sage_path = MODELS_DIR / "graphsage.pt"
+    sage_path = MODELS_DIR / "graphsage_model.pt"
     if sage_path.exists():
         logger.info("Evaluating GraphSAGE model...")
         checkpoint = torch.load(sage_path, map_location=DEVICE)
         model = GraphSAGE(in_channels=checkpoint["in_ch"], hidden_channels=32, out_channels=2, sample_size=10).to(DEVICE)
-        model.load_state_dict(checkpoint["model_state"])
+        state = checkpoint.get("model_state_dict", checkpoint.get("model_state"))
+        model.load_state_dict(state)
         model.eval()
         
         with torch.no_grad():
@@ -113,12 +115,13 @@ def main() -> None:
         logger.warning("GraphSAGE model checkpoint not found at %s", sage_path)
 
     # 3. Evaluate TGN
-    tgn_path = MODELS_DIR / "tgn.pt"
+    tgn_path = MODELS_DIR / "tgn_model.pt"
     if tgn_path.exists():
         logger.info("Evaluating TGN model...")
         checkpoint = torch.load(tgn_path, map_location=DEVICE)
         model = TGN(num_nodes=checkpoint["num_nodes"], node_feat_dim=checkpoint["in_ch"], memory_dim=32, time_dim=16).to(DEVICE)
-        model.load_state_dict(checkpoint["model_state"])
+        state = checkpoint.get("model_state_dict", checkpoint.get("model_state"))
+        model.load_state_dict(state)
         model.eval()
         
         # Use window of events

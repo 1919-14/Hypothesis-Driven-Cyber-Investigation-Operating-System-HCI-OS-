@@ -252,8 +252,14 @@ def train_gat(X: torch.Tensor, edge_index: torch.Tensor, Y: torch.Tensor) -> Non
     elapsed = time.time() - t0
     logger.info("GAT training done in %.1fs", elapsed)
 
-    out_path = MODELS_DIR / "gat.pt"
-    torch.save({"model_state": model.state_dict(), "in_ch": in_ch}, out_path)
+    out_path = MODELS_DIR / "gat_model.pt"
+    torch.save({
+        "model_state": model.state_dict(),
+        "model_state_dict": model.state_dict(),
+        "in_ch": in_ch,
+        "version": "1.0",
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }, out_path)
     logger.info("GAT saved → %s", out_path)
 
 
@@ -292,8 +298,14 @@ def train_graphsage(
     elapsed = time.time() - t0
     logger.info("GraphSAGE training done in %.1fs", elapsed)
 
-    out_path = MODELS_DIR / "graphsage.pt"
-    torch.save({"model_state": model.state_dict(), "in_ch": in_ch}, out_path)
+    out_path = MODELS_DIR / "graphsage_model.pt"
+    torch.save({
+        "model_state": model.state_dict(),
+        "model_state_dict": model.state_dict(),
+        "in_ch": in_ch,
+        "version": "1.0",
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }, out_path)
     logger.info("GraphSAGE saved → %s", out_path)
 
 
@@ -336,11 +348,14 @@ def train_tgn(
     elapsed = time.time() - t0
     logger.info("TGN training done in %.1fs", elapsed)
 
-    out_path = MODELS_DIR / "tgn.pt"
+    out_path = MODELS_DIR / "tgn_model.pt"
     torch.save({
         "model_state": model.state_dict(),
+        "model_state_dict": model.state_dict(),
         "in_ch":       in_ch,
         "num_nodes":   num_nodes,
+        "version": "1.0",
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }, out_path)
     logger.info("TGN saved → %s", out_path)
 
