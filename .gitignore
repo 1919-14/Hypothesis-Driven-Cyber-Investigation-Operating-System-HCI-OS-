@@ -20,8 +20,6 @@ env/
 *.sqlite
 *.log
 data/*.csv
-data/*.json
-!data/asset_inventory.json
 !data/sample_logs.csv
 
 # Secrets
