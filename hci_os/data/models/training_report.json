@@ -1,0 +1,21 @@
+{
+  "one_class_svm": {
+    "algorithm": "OneClassSVM",
+    "kernel": "rbf",
+    "nu": 0.02,
+    "gamma": "0.2",
+    "n_samples_train": 15000,
+    "n_features": 20,
+    "elapsed_s": 0.2,
+    "score_threshold_5pct": 0.049827,
+    "train_fpr_5pct": 0.05,
+    "score_std": 0.40429941,
+    "datasets": [
+      "CICIDS-2017"
+    ],
+    "ticket": "19c \u2014 optimized RBF/linear kernel replaces RBF default"
+  },
+  "total_elapsed_s": 1.6,
+  "generated_at": "2026-07-15T22:40:37.457327+00:00Z",
+  "version": "2.0-real"
+}
