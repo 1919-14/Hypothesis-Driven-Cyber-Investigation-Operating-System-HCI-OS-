@@ -46,3 +46,6 @@ htmlcov/
 
 # Benchmark outputs
 benchmark/results/
+
+# Large GNN Dataset
+hci_os/data/ET HCI GNN Dataset/
