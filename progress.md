@@ -948,4 +948,24 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 
 **Next Steps:**
 
-- Proceed to Ticket 17 (5-Minute Demo Script) and Ticket 18 (Q&A Playbook).
+- Proceed to Ticket 18 (Q&A Playbook).
+
+---
+
+## [2026-07-17 01:25] — BUILD & DOCS — TICKET 17 COMPLETE: 5-Minute Demo Script (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- Created a comprehensive 5-minute live demonstration script at [`docs/demo_script.md`](file:///c:/Users/saina/Videos/ET%20Hackathon%202.0/docs/demo_script.md) for the HCI-OS project presentation.
+- Defined a 9-beat structured timeline mapping timestamps, visuals, actions, and narration from T-0 (CBSE Web Server healthy) to T+43s (incident containment).
+- Incorporated explicit timing warnings (e.g. at the 4:00 mark to check the timer and bypass non-critical beats if running long).
+- Outlined a detailed Pre-Demo Checklist covering backend health checks, browser configurations, tab preparation, and environment reset.
+- Set up a video backup plan specifying OBS Studio recording configuration (1080p, 30fps) and YouTube unlisted hosting guidelines.
+- Created a rehearsal log template to track delivery speed, timing, and bug fixes across multiple runs.
+- Formulated an extensive Judge Q&A Playbook with 2-3 detailed technical drill-down questions and answers per key demo beat.
+
+**Files created/modified:**
+
+- `docs/demo_script.md` — ✅ New (5-Minute Demo Script & Q&A Playbook)
