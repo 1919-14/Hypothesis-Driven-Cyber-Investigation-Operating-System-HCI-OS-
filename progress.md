@@ -948,7 +948,7 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 
 **Next Steps:**
 
-- Proceed to Ticket 18 (Q&A Playbook).
+- Prepare team presentation slides and rehearse the Q&A playbook defense.
 
 ---
 
@@ -969,3 +969,24 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 **Files created/modified:**
 
 - `docs/demo_script.md` — ✅ New (5-Minute Demo Script & Q&A Playbook)
+
+---
+
+## [2026-07-17 02:00] — BUILD & DOCS — TICKET 18 COMPLETE: Judge Q&A Playbook (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- Created a comprehensive Judge Q&A Playbook at [`docs/qa_playbook.md`](file:///c:/Users/saina/Videos/ET%20Hackathon%202.0/docs/qa_playbook.md) for the live prototype defense session.
+- Outlined a defensive Claim-Attribute-Result (CAR) answering structure for consistent delivery.
+- Set up Tone & Delivery guidelines to manage conciseness, technical jargon, and team roles.
+- Compiled a cheat-sheet of Key Numbers to Memorize (e.g., 400x speedup, 20,000x ROI, 0.04% FPR, 43s containment).
+- Formulated primary answers and 2 follow-up drill-down responses for each of the 9 core questions judges are likely to ask.
+- Added a Worst-Case Question Drill section to address GNN model prediction failure or LLM jailbreaking scenarios.
+- Mapped all playbook questions to the hackathon judging criteria (Innovation, Business Impact, Technical Excellence, Scalability, UX) and cross-referenced them to the demo script beats and business case ROI figures.
+- Created a rehearsal log template to track question defense times and delivery adjustments.
+
+**Files created/modified:**
+
+- `docs/qa_playbook.md` — ✅ New (Judge Q&A Playbook)
