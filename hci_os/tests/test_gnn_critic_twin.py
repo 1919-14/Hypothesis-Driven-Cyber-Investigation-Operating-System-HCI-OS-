@@ -376,7 +376,7 @@ class TestA8Process:
         """Gap #5: FP likelihood stored in world_model.safety_constraints."""
         from objects.hypothesis import WorldModel
         sample_hypothesis.world_model = WorldModel(
-            industry="education", criticality="HIGH",
+            industry="education", mission="exam_portal", criticality="HIGH",
         )
         a8.process(sample_evidence, sample_hypothesis)
         assert "critic_fp_likelihood" in sample_hypothesis.world_model.safety_constraints
