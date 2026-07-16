@@ -1,0 +1,93 @@
+[
+  {
+    "advisory_id": "CIAD-2022-0089",
+    "title": "SideWinder APT Group Targeting Indian Military and Government",
+    "date": "2022-09-15",
+    "description": "CERT-In has observed targeted attacks by the SideWinder APT group (also known as Rattlesnake, T-APT-04) against Indian military establishments, government agencies, and critical infrastructure. The attack chain begins with spearphishing emails containing malicious RTF documents exploiting CVE-2017-11882. Post-exploitation uses a PowerShell-based RAT for persistence.",
+    "ttp_chain": ["T1566", "T1203", "T1059", "T1071", "T1003"],
+    "target_sectors": ["Military", "Government", "Finance"],
+    "iocs": ["185.234.219.0/24", "hxxp://update.microsoft-online.com"],
+    "attribution": "SideWinder",
+    "source": "CERT-In",
+    "trust_weight": 0.95,
+    "india_relevance": "CRITICAL"
+  },
+  {
+    "advisory_id": "CIAD-2023-0012",
+    "title": "APT41 Targeting Indian Healthcare and Education Sector",
+    "date": "2023-02-20",
+    "description": "CERT-In has identified a campaign by APT41 (Winnti, Double Dragon) targeting Indian healthcare institutions including AIIMS and hospital chains. The attack begins with active reconnaissance of patient portals, followed by exploitation of web application vulnerabilities (Log4Shell, Spring4Shell). The goal appears to be patient data exfiltration and ransomware deployment as a secondary objective.",
+    "ttp_chain": ["T1595", "T1190", "T1059", "T1003", "T1486"],
+    "target_sectors": ["Healthcare", "Education"],
+    "iocs": ["103.236.201.0/24", "hxxps://cdn-update.services.gov.in.malicious.com"],
+    "attribution": "APT41",
+    "source": "CERT-In",
+    "trust_weight": 0.95,
+    "india_relevance": "CRITICAL"
+  },
+  {
+    "advisory_id": "CIAD-2023-0147",
+    "title": "HTTP/2 Rapid Reset Attack Against Indian Web Infrastructure",
+    "date": "2023-10-15",
+    "description": "Following global disclosure of CVE-2023-44487, CERT-In has observed exploitation attempts against Indian government web portals including IRCTC, NIC-hosted portals, and state government sites. Attackers are using Rapid Reset to cause denial of service. Patch immediately to Nginx 1.25.3+ or Apache 2.4.58+.",
+    "ttp_chain": ["T1595", "T1499"],
+    "target_sectors": ["Government", "Transport"],
+    "iocs": ["Various Tor exit nodes", "185.220.0.0/24"],
+    "attribution": "Unknown (DDoS-for-hire)",
+    "source": "CERT-In",
+    "trust_weight": 0.95,
+    "india_relevance": "HIGH"
+  },
+  {
+    "advisory_id": "CIAD-2024-0034",
+    "title": "Ransomware Targeting Indian Power Sector OT Networks",
+    "date": "2024-03-10",
+    "description": "CERT-In alerts power sector entities of a coordinated ransomware campaign targeting IT/OT convergence zones. Attackers use valid SCADA credentials (obtained via phishing or brute force) to access engineering workstations, then deploy ransomware affecting both IT systems and OT HMI interfaces. Power distribution SCADA from ABB and Siemens are primary targets. Recommend immediate network segmentation of OT from IT.",
+    "ttp_chain": ["T1566", "T1078", "T1021", "T1486", "T1489"],
+    "target_sectors": ["Power", "Energy", "OT/SCADA"],
+    "iocs": ["10.0.0.0/8 internal pivot observed", "Mimikatz artifacts"],
+    "attribution": "Suspected state-sponsored (attribution unclear)",
+    "source": "CERT-In",
+    "trust_weight": 0.95,
+    "india_relevance": "CRITICAL"
+  },
+  {
+    "advisory_id": "CIAD-2026-0041",
+    "title": "CBSE Portal Compromise via Valid Admin Credentials",
+    "date": "2026-03-05",
+    "description": "CERT-In has evidence of compromise of the CBSE examination portal using stolen admin credentials. The attacker performed reconnaissance (T1595) targeting the exam portal in January, exploited the Log4Shell vulnerability for initial access (T1190), used command execution to establish persistence (T1059), and was observed performing credential dumping (T1003) in February. The attack coincided with the CBSE board exam season (February-March). Immediate password reset and MFA enforcement recommended.",
+    "ttp_chain": ["T1595", "T1190", "T1059", "T1003"],
+    "target_sectors": ["Education", "Government"],
+    "iocs": ["203.94.1.10 (CBSE WebSvr-01)", "185.23.147.82 (attacker src_ip)"],
+    "attribution": "APT41",
+    "source": "CERT-In",
+    "trust_weight": 0.95,
+    "india_relevance": "CRITICAL"
+  },
+  {
+    "advisory_id": "CIAD-2024-0078",
+    "title": "Supply Chain Attack on Indian Railway Ticketing Systems",
+    "date": "2024-07-22",
+    "description": "CERT-In has identified a supply chain compromise affecting a third-party vendor for IRCTC ticketing integration. Malicious code was injected into the vendor's update mechanism, resulting in installation of a backdoor on railway ticketing servers. The backdoor communicates over HTTP/S to C2 infrastructure.",
+    "ttp_chain": ["T1195", "T1071", "T1136", "T1057"],
+    "target_sectors": ["Transport", "Government"],
+    "iocs": ["update.railvendor-legitimate-looking-domain.com"],
+    "attribution": "Unknown",
+    "source": "CERT-In",
+    "trust_weight": 0.95,
+    "india_relevance": "HIGH"
+  },
+  {
+    "advisory_id": "CIAD-2025-0019",
+    "title": "Volt Typhoon Activity Observed in Indian Infrastructure",
+    "date": "2025-02-10",
+    "description": "CERT-In has identified Volt Typhoon (Bronze Silhouette) TTPs in probing activity against Indian critical infrastructure including power grid and telecom. Unlike destructive campaigns, this appears to be pre-positioning for future disruption. Living-off-the-land techniques observed: use of built-in tools (certutil, netsh), no custom malware.",
+    "ttp_chain": ["T1595", "T1078", "T1021", "T1057", "T1136"],
+    "target_sectors": ["Power", "Telecom", "Defense"],
+    "iocs": ["Compromised SOHO routers used as proxies"],
+    "attribution": "Volt Typhoon",
+    "source": "CERT-In",
+    "trust_weight": 0.95,
+    "india_relevance": "CRITICAL"
+  }
+]

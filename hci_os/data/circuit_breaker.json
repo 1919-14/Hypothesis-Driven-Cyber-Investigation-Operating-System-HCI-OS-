@@ -1,0 +1,8 @@
+{
+  "test.reset_me": {
+    "consecutive_failures": 0,
+    "open_until": null,
+    "total_calls": 5,
+    "total_failures": 3
+  }
+}

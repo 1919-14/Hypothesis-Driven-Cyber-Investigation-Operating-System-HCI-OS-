@@ -40,17 +40,21 @@ class GATLayer(nn.Module):
             e = self.leakyrelu(
                 torch.matmul(torch.cat([Wh[row], Wh[col]], dim=1), self.a[k]).squeeze(1)
             )
-            alpha = torch.zeros(edge_index.size(1), device=h.device)
-            for i in range(num_nodes):
-                mask = col == i
-                if mask.any():
-                    alpha[mask] = F.softmax(e[mask], dim=0)
+
+            # Vectorized softmax grouping by col
+            e_stable = e - e.max()
+            exp_e = torch.exp(e_stable)
+            sum_exp = torch.zeros(num_nodes, device=h.device)
+            sum_exp.index_add_(0, col, exp_e)
+            alpha = exp_e / (sum_exp[col] + 1e-12)
+
             alpha_drop = F.dropout(alpha, p=self.dropout, training=self.training)
+
+            # Vectorized aggregation using index_add_
+            weighted_features = alpha_drop.unsqueeze(1) * Wh[row]
             h_prime = torch.zeros_like(Wh)
-            for i in range(num_nodes):
-                mask = col == i
-                if mask.any():
-                    h_prime[i] = (alpha_drop[mask].unsqueeze(1) * Wh[row[mask]]).sum(0)
+            h_prime.index_add_(0, col, weighted_features)
+
             head_outs.append(h_prime)
             if first_attn is None:
                 first_attn = alpha

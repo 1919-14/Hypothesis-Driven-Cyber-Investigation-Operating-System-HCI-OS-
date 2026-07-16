@@ -20,8 +20,6 @@ env/
 *.sqlite
 *.log
 data/*.csv
-data/*.json
-!data/asset_inventory.json
 !data/sample_logs.csv
 
 # Secrets
@@ -50,3 +48,6 @@ benchmark/results/
 # Raw and processed data
 data/real_data/
 data/processed/
+
+# Ignore large raw backup json
+data/neo4j_kg_backup.json
