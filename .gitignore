@@ -20,8 +20,6 @@ env/
 *.sqlite
 *.log
 data/*.csv
-data/*.json
-!data/asset_inventory.json
 !data/sample_logs.csv
 
 # Secrets
@@ -46,3 +44,6 @@ htmlcov/
 
 # Benchmark outputs
 benchmark/results/
+
+# Large GNN Dataset
+hci_os/data/ET HCI GNN Dataset/

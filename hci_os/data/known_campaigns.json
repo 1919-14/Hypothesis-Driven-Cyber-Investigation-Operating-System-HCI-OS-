@@ -1,0 +1,67 @@
+{
+  "APT41": {
+    "description": "APT41 (Double Dragon, Winnti) - Chinese state-sponsored group targeting healthcare, education, and tech. Known for dual espionage/ransomware operations.",
+    "ttp_sequence": ["T1595", "T1190", "T1059", "T1003", "T1486"],
+    "sectors": ["Healthcare", "Education", "Technology"],
+    "countries_targeted": ["India", "USA", "Japan", "South Korea"],
+    "preventive_actions": {
+      "T1595": "deploy_honeypots",
+      "T1190": "patch_log4shell_spring4shell",
+      "T1059": "restrict_scripting_engines",
+      "T1003": "enable_credential_guard",
+      "T1486": "immutable_backups"
+    }
+  },
+  "SideWinder": {
+    "description": "SideWinder (Rattlesnake, T-APT-04) - Suspected Indian military intelligence group targeting Pakistan, but also observed targeting Indian military and government.",
+    "ttp_sequence": ["T1566", "T1203", "T1059", "T1071", "T1003"],
+    "sectors": ["Military", "Government", "Finance"],
+    "countries_targeted": ["Pakistan", "India", "Sri Lanka", "Nepal"],
+    "preventive_actions": {
+      "T1566": "email_security_gateway",
+      "T1203": "patch_office_vulnerabilities",
+      "T1059": "applocker_policy",
+      "T1071": "deep_packet_inspection",
+      "T1003": "enable_lsass_protection"
+    }
+  },
+  "VoltTyphoon": {
+    "description": "Volt Typhoon (Bronze Silhouette) - Chinese state-sponsored group focused on pre-positioning in critical infrastructure for potential future disruption.",
+    "ttp_sequence": ["T1595", "T1078", "T1021", "T1057", "T1136"],
+    "sectors": ["Power", "Telecom", "Defense", "Transport"],
+    "countries_targeted": ["USA", "India", "Australia", "UK"],
+    "preventive_actions": {
+      "T1595": "network_traffic_baselining",
+      "T1078": "mfa_enforcement",
+      "T1021": "disable_rdp_smb",
+      "T1057": "endpoint_detection",
+      "T1136": "privileged_account_monitoring"
+    }
+  },
+  "LazarusGroup": {
+    "description": "Lazarus Group (Hidden Cobra) - North Korean state-sponsored group focused on financial theft and espionage. Active in Indian banking sector.",
+    "ttp_sequence": ["T1566", "T1078", "T1059", "T1071", "T1486"],
+    "sectors": ["Finance", "Banking", "Cryptocurrency"],
+    "countries_targeted": ["India", "Bangladesh", "South Korea", "USA"],
+    "preventive_actions": {
+      "T1566": "spearphishing_training",
+      "T1078": "credential_monitoring",
+      "T1059": "script_block_logging",
+      "T1071": "egress_filtering",
+      "T1486": "air_gap_critical_systems"
+    }
+  },
+  "RansomwareGroup": {
+    "description": "Generic ransomware operators (including LockBit, BlackCat) targeting Indian power and healthcare sectors.",
+    "ttp_sequence": ["T1566", "T1078", "T1021", "T1486", "T1489"],
+    "sectors": ["Power", "Healthcare", "Manufacturing"],
+    "countries_targeted": ["India", "USA", "EU"],
+    "preventive_actions": {
+      "T1566": "email_filtering",
+      "T1078": "zero_trust_network_access",
+      "T1021": "network_segmentation",
+      "T1486": "offline_backups",
+      "T1489": "service_hardening"
+    }
+  }
+}

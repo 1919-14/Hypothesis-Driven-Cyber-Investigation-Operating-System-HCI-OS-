@@ -1,0 +1,135 @@
+[
+  {
+    "technique_id": "T1595",
+    "name": "Active Scanning",
+    "tactic": "Reconnaissance",
+    "description": "Adversaries may execute active reconnaissance scans to gather information that can be used during targeting. Active scans are those where the adversary probes victim infrastructure via network traffic, as opposed to other forms of reconnaissance that do not involve direct interaction.",
+    "platforms": ["Network"],
+    "data_sources": ["Network Traffic", "Cloud Service"],
+    "mitigations": ["Pre-compromise", "Filter Network Traffic"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1190",
+    "name": "Exploit Public-Facing Application",
+    "tactic": "Initial Access",
+    "description": "Adversaries may attempt to exploit a weakness in an Internet-facing host or system to initially access a network. The weakness in the system can be a software bug, a temporary glitch, or a misconfiguration. Exploitation of CVE-2021-44228 (Log4Shell) in Apache Log4j is a prime example.",
+    "platforms": ["Linux", "Windows", "macOS", "Network"],
+    "data_sources": ["Application Log", "Network Traffic"],
+    "mitigations": ["Exploit Protection", "Vulnerability Scanning", "Update Software"],
+    "cves": ["CVE-2021-44228", "CVE-2021-45046"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1059",
+    "name": "Command and Scripting Interpreter",
+    "tactic": "Execution",
+    "description": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries. These interfaces and languages provide ways of interacting with computer systems and are a common feature across many different platforms. Most systems come with some built-in command-line interface and scripting capabilities.",
+    "platforms": ["Linux", "Windows", "macOS"],
+    "data_sources": ["Command", "Process", "Script"],
+    "mitigations": ["Disable or Remove Feature or Program", "Execution Prevention"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1003",
+    "name": "OS Credential Dumping",
+    "tactic": "Credential Access",
+    "description": "Adversaries may attempt to dump credentials to obtain account login and credential material, normally in the form of a hash or a clear text password. Credentials can be obtained from OS caches, memory, or files. Dumping LSASS memory is a common Windows technique.",
+    "platforms": ["Windows", "Linux", "macOS"],
+    "data_sources": ["Process", "Command", "File"],
+    "mitigations": ["Privileged Account Management", "Credential Access Protection"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1078",
+    "name": "Valid Accounts",
+    "tactic": "Defense Evasion / Persistence / Initial Access",
+    "description": "Adversaries may obtain and abuse credentials of existing accounts as a means of gaining Initial Access, Persistence, Privilege Escalation, or Defense Evasion. Compromised credentials may be used to bypass access controls placed on various resources on systems within the network.",
+    "platforms": ["Linux", "Windows", "macOS", "Cloud", "IaaS"],
+    "data_sources": ["Authentication Log", "User Account"],
+    "mitigations": ["Privileged Account Management", "Multi-Factor Authentication"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1566",
+    "name": "Phishing",
+    "tactic": "Initial Access",
+    "description": "Adversaries may send phishing messages to gain access to victim systems. All forms of phishing are electronically delivered social engineering. Phishing can be targeted (spearphishing) or sent at scale.",
+    "platforms": ["Linux", "Windows", "macOS", "SaaS"],
+    "data_sources": ["Application Log", "File", "Network Traffic"],
+    "mitigations": ["Software Configuration", "User Training", "Anti-phishing"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1071",
+    "name": "Application Layer Protocol",
+    "tactic": "Command and Control",
+    "description": "Adversaries may communicate using OSI application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system may also be included in the protocol traffic between the client and server.",
+    "platforms": ["Linux", "Windows", "macOS"],
+    "data_sources": ["Network Traffic"],
+    "mitigations": ["Filter Network Traffic", "Network Intrusion Prevention"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1486",
+    "name": "Data Encrypted for Impact",
+    "tactic": "Impact",
+    "description": "Adversaries may encrypt data on target systems or on large numbers of systems in a network to interrupt availability to system and network resources. They can attempt to render stored data inaccessible by encrypting files or data on local and remote drives and withholding access to a decryption key.",
+    "platforms": ["Linux", "Windows", "macOS", "IaaS"],
+    "data_sources": ["File", "Process", "Cloud Storage"],
+    "mitigations": ["Data Backup", "Behavior Prevention on Endpoint"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1021",
+    "name": "Remote Services",
+    "tactic": "Lateral Movement",
+    "description": "Adversaries may use valid accounts to log into a service specifically designed to accept remote connections, such as telnet, SSH, and VNC. The adversary may then perform actions as the logged-on user.",
+    "platforms": ["Linux", "Windows", "macOS"],
+    "data_sources": ["Authentication Log", "Process", "Network Traffic"],
+    "mitigations": ["Disable or Remove Feature or Program", "Multi-Factor Authentication"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1057",
+    "name": "Process Discovery",
+    "tactic": "Discovery",
+    "description": "Adversaries may attempt to get information about running processes on a system. Information obtained could be used to gain an understanding of common software/applications running on systems within the network.",
+    "platforms": ["Linux", "Windows", "macOS"],
+    "data_sources": ["Process", "Command"],
+    "mitigations": ["None (detection-focused)"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1136",
+    "name": "Create Account",
+    "tactic": "Persistence",
+    "description": "Adversaries may create an account to maintain access to victim systems. With a sufficient level of access, creating such accounts may be used to establish secondary credentialed access that do not require persistent remote access tools to be deployed on the system.",
+    "platforms": ["Linux", "Windows", "macOS", "Cloud"],
+    "data_sources": ["User Account", "Process"],
+    "mitigations": ["Multi-Factor Authentication", "Privileged Account Management"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  },
+  {
+    "technique_id": "T1489",
+    "name": "Service Stop",
+    "tactic": "Impact",
+    "description": "Adversaries may stop or disable services on a system to render those services unavailable to legitimate users. Stopping critical services can inhibit or stop response to an incident or aid in the adversary's overall objectives to cause damage to the environment.",
+    "platforms": ["Linux", "Windows"],
+    "data_sources": ["Windows Registry", "Process", "Service"],
+    "mitigations": ["Network Segmentation", "User Account Management"],
+    "source": "MITRE",
+    "trust_weight": 0.90
+  }
+]
