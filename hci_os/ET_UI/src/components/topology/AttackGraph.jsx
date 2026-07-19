@@ -28,14 +28,9 @@ const AttackGraph = ({ highlightedNodes = [], compact = false }) => {
 
   useEffect(() => {
     if (!ref.current) return;
-    // Destroy any existing instance before creating a new one
-    if (cyRef.current) { try { cyRef.current.destroy(); } catch(_) {} }
-    const nodes = graph.nodes || [];
-    const edges = graph.edges || [];
-    if (nodes.length === 0 && edges.length === 0) return;
     const cy = cytoscape({
       container: ref.current,
-      elements: [...nodes, ...edges],
+      elements: [...(graph.nodes || []), ...(graph.edges || [])],
       wheelSensitivity: 0.2,
       style: [
         {
@@ -101,12 +96,12 @@ const AttackGraph = ({ highlightedNodes = [], compact = false }) => {
         directed: true,
         padding: 30,
         spacingFactor: 1.25,
-        roots: nodes.find(n => (n.data?.id ?? n.id) === "internet") ? ["internet"] : undefined,
+        roots: ["internet"],
       },
     });
     cyRef.current = cy;
-    return () => { try { cy.destroy(); } catch(_) {} };
-  }, [graph]);
+    return () => cy.destroy();
+  }, []);
 
   useEffect(() => {
     if (!cyRef.current) return;
