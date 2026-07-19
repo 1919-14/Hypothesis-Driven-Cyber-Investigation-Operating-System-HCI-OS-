@@ -67,6 +67,7 @@ const RoleSwitcher = () => {
 const Header = () => {
   const { data } = useTimeline();
   const incident = data?.incident;
+  const { searchQuery, setSearchQuery } = useApp();
 
   return (
     <header className="h-14 shrink-0 border-b border-[var(--hci-border)] bg-white px-4 flex items-center gap-3 sticky top-0 z-30 overflow-hidden">
@@ -90,8 +91,19 @@ const Header = () => {
         <input
           data-testid="global-search"
           placeholder="Search evidence, hypotheses, assets…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full h-8 pl-9 pr-12 rounded-md bg-[#f8fafc] border border-[var(--hci-border)] text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[var(--hci-brand)] focus:border-transparent"
         />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-12 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 text-[11px]"
+            title="Clear search"
+          >
+            Clear
+          </button>
+        )}
         <span className="kbd absolute right-3 top-1/2 -translate-y-1/2 hidden sm:block">⌘K</span>
       </div>
 

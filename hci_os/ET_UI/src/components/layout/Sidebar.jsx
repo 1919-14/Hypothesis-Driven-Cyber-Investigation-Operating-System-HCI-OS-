@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { TID } from "@/constants/testIds";
 import {
@@ -34,6 +34,14 @@ const Sidebar = () => {
   // Dynamic Human Gate pending decisions count
   const { data: decisions } = useDecisions(role);
   const pendingCount = (decisions ?? []).length;
+
+  // Auto-redirect if switched to a role that does not have access to current route
+  useEffect(() => {
+    const isAllowed = items.some((item) => item.id === route);
+    if (!isAllowed && items.length > 0) {
+      setRoute(items[0].id);
+    }
+  }, [roleId, items, route, setRoute]);
 
   return (
     <aside className="w-64 shrink-0 border-r border-[var(--hci-border)] bg-white flex flex-col">

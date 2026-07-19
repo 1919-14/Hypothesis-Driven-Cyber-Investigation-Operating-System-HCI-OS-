@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { TID } from "@/constants/testIds";
 import { Play, Pause, RotateCcw, Clock, ChevronRight } from "lucide-react";
 import { useTimeline } from "@/api/useTimeline";
+import { useApp } from "@/context/AppContext";
 
 const DEFAULT_T_MAX = 43;
 
@@ -22,8 +23,21 @@ const chipCls = (s) => ({
 }[s] || "chip chip-neutral");
 
 const Timeline = ({ selectedIdx, onSelect }) => {
+  const { searchQuery } = useApp();
   const { data } = useTimeline();
-  const TIMELINE_EVENTS = data?.timeline_events ?? [];
+
+  const TIMELINE_EVENTS = useMemo(() => {
+    const rawEvents = data?.timeline_events ?? [];
+    if (!searchQuery) return rawEvents;
+    const q = searchQuery.toLowerCase();
+    return rawEvents.filter((e) =>
+      e.title?.toLowerCase().includes(q) ||
+      e.description?.toLowerCase().includes(q) ||
+      e.type?.toLowerCase().includes(q) ||
+      e.asset_id?.toLowerCase().includes(q) ||
+      e.severity?.toLowerCase().includes(q)
+    );
+  }, [data, searchQuery]);
 
   // Compute T_MAX from actual events so the ruler scales correctly for real data
   const T_MAX = TIMELINE_EVENTS.length > 0
