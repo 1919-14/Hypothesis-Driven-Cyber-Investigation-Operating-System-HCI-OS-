@@ -51,4 +51,3 @@ data/processed/
 
 # Ignore large raw backup json
 data/neo4j_kg_backup.json
-data/models/neo4j_kg_backup.json/

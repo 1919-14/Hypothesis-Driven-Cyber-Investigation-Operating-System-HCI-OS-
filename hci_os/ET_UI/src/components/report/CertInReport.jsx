@@ -132,7 +132,7 @@ const CertInReport = () => {
                   <div key={i} className="flex items-start gap-2">
                     <span className="text-[var(--hci-brand)] w-16 shrink-0">{a.ts}</span>
                     <span className="flex-1 truncate">{a.actor}::{a.event}</span>
-                    <span className="text-[var(--hci-text-3)]">{(a.hash ?? "").slice(0, 10)}</span>
+                    <span className="text-[var(--hci-text-3)]">{a.hash.slice(0, 8)}</span>
                   </div>
                 ))}
               </div>
