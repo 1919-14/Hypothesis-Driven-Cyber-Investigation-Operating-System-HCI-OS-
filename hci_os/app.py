@@ -456,10 +456,9 @@ async def get_incident_timeline(hypothesis_id: str) -> JSONResponse:
     except Exception as exc:
         logger.warning("/incident/timeline recall failed: %s", exc)
 
-    seed = _load_demo_seed()
     return JSONResponse(content={
-        "incident":        seed.get("incident", {}),
-        "timeline_events": seed.get("timeline_events", []),
+        "incident":        None,
+        "timeline_events": [],
     })
 
 
@@ -493,13 +492,11 @@ async def get_pending_decisions() -> JSONResponse:
                     "ts_iso":             entry.get("stored_at") or entry.get("created_at"),
                     "sla_seconds_left":   900,
                 })
-        if pending:
-            return JSONResponse(content=pending)
+        return JSONResponse(content=pending)
     except Exception as exc:
         logger.warning("/decisions/pending scan failed: %s", exc)
 
-    seed = _load_demo_seed()
-    return JSONResponse(content=seed.get("pending_decisions", []))
+    return JSONResponse(content=[])
 
 
 # ── POST /correction/{action} ─────────────────────────────────────────────────
@@ -650,10 +647,9 @@ async def get_cert_in_report(
     ?format=md  → returns plain-text Markdown for download.
     ?format=json → returns structured JSON consumed by CertInReport.jsx.
     """
-    seed     = _load_demo_seed()
-    incident = seed.get("incident", {})
-    timeline = seed.get("timeline_events", [])
-    audit    = seed.get("audit_log", [])
+    incident = {}
+    timeline = []
+    audit = []
 
     # Try to enrich with real hypothesis data
     try:
@@ -675,9 +671,14 @@ async def get_cert_in_report(
                 ],
                 "iocs": [],
             }
-            timeline = h.get("timeline", timeline)
+            timeline = h.get("timeline", [])
+        else:
+            raise HTTPException(status_code=404, detail="No compliance report available for this incident")
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.warning("/cert-in/report recall failed: %s", exc)
+        raise HTTPException(status_code=404, detail="No compliance report available for this incident")
 
     # Try to enrich audit excerpt with real log entries
     try:
