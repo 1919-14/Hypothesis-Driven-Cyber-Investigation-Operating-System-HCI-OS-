@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { INCIDENT, TIMELINE_EVENTS } from "@/mock/data";
 
 /**
  * Fetches incident metadata + timeline events from the backend.
@@ -15,10 +14,5 @@ export const useTimeline = (hypothesisId = "latest") => {
       return res.json();
     },
     refetchInterval: 5_000,
-    // Immediately show mock data before the first API round-trip
-    placeholderData: {
-      incident: INCIDENT,
-      timeline_events: TIMELINE_EVENTS,
-    },
   });
 };

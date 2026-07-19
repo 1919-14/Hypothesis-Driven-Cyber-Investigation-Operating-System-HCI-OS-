@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { GRAPH } from "@/mock/data";
 
 /**
  * Fetches GNN ensemble visualization from the backend (GAT + TGN + GraphSAGE).
@@ -25,11 +24,5 @@ export const useGnn = () => {
       };
     },
     refetchInterval: 10_000,
-    placeholderData: {
-      graph:        GRAPH,
-      tgn_timeline: [],
-      sage_pca:     [],
-      perf:         {},
-    },
   });
 };

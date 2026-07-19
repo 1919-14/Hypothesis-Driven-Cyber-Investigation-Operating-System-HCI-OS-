@@ -11,17 +11,19 @@ import {
   Cpu,
   Lock,
   LineChart,
+  UploadCloud,
 } from "lucide-react";
 
 const NAV = [
-  { id: "incident", label: "Incident Timeline", icon: Activity, roles: ["soc", "reviewer", "ciso", "sysadmin"] },
-  { id: "topology", label: "Attack Topology", icon: Share2, roles: ["soc", "reviewer", "ciso", "sysadmin"] },
-  { id: "gate", label: "Human Gate", icon: Users, roles: ["soc", "reviewer", "sysadmin"], badge: 3 },
-  { id: "twin", label: "Digital Twin", icon: Bug, roles: ["soc", "reviewer", "sysadmin"] },
-  { id: "report", label: "CERT-In Report", icon: FileText, roles: ["soc", "reviewer", "ciso"] },
-  { id: "exec", label: "Executive View", icon: LineChart, roles: ["ciso"] },
-  { id: "audit", label: "Audit Chain", icon: Lock, roles: ["reviewer", "ciso", "sysadmin"] },
-  { id: "health", label: "Agent Health", icon: Cpu, roles: ["sysadmin"] },
+  { id: "incident", label: "Incident Timeline", icon: Activity,     roles: ["soc", "reviewer", "ciso", "sysadmin"] },
+  { id: "ingest",   label: "Ingest Events",    icon: UploadCloud,  roles: ["soc", "reviewer", "ciso", "sysadmin"] },
+  { id: "topology", label: "Attack Topology",  icon: Share2,       roles: ["soc", "reviewer", "ciso", "sysadmin"] },
+  { id: "gate",     label: "Human Gate",       icon: Users,        roles: ["soc", "reviewer", "sysadmin"], badge: 3 },
+  { id: "twin",     label: "Digital Twin",     icon: Bug,          roles: ["soc", "reviewer", "sysadmin"] },
+  { id: "report",   label: "CERT-In Report",   icon: FileText,     roles: ["soc", "reviewer", "ciso"] },
+  { id: "exec",     label: "Executive View",   icon: LineChart,    roles: ["ciso"] },
+  { id: "audit",    label: "Audit Chain",      icon: Lock,         roles: ["reviewer", "ciso", "sysadmin"] },
+  { id: "health",   label: "Agent Health",     icon: Cpu,          roles: ["sysadmin"] },
 ];
 
 const Sidebar = () => {
