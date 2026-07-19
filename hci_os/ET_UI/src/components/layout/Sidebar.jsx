@@ -13,12 +13,13 @@ import {
   LineChart,
   UploadCloud,
 } from "lucide-react";
+import { useDecisions } from "@/api/useDecisions";
 
 const NAV = [
   { id: "incident", label: "Incident Timeline", icon: Activity,     roles: ["soc", "reviewer", "ciso", "sysadmin"] },
   { id: "ingest",   label: "Ingest Events",    icon: UploadCloud,  roles: ["soc", "reviewer", "ciso", "sysadmin"] },
   { id: "topology", label: "Attack Topology",  icon: Share2,       roles: ["soc", "reviewer", "ciso", "sysadmin"] },
-  { id: "gate",     label: "Human Gate",       icon: Users,        roles: ["soc", "reviewer", "sysadmin"], badge: 3 },
+  { id: "gate",     label: "Human Gate",       icon: Users,        roles: ["soc", "reviewer", "sysadmin"] },
   { id: "twin",     label: "Digital Twin",     icon: Bug,          roles: ["soc", "reviewer", "sysadmin"] },
   { id: "report",   label: "CERT-In Report",   icon: FileText,     roles: ["soc", "reviewer", "ciso"] },
   { id: "exec",     label: "Executive View",   icon: LineChart,    roles: ["ciso"] },
@@ -27,8 +28,12 @@ const NAV = [
 ];
 
 const Sidebar = () => {
-  const { route, setRoute, roleId } = useApp();
+  const { route, setRoute, roleId, role } = useApp();
   const items = NAV.filter((n) => n.roles.includes(roleId));
+
+  // Dynamic Human Gate pending decisions count
+  const { data: decisions } = useDecisions(role);
+  const pendingCount = (decisions ?? []).length;
 
   return (
     <aside className="w-64 shrink-0 border-r border-[var(--hci-border)] bg-white flex flex-col">
@@ -56,8 +61,8 @@ const Sidebar = () => {
             >
               <Icon size={16} weight={active ? "fill" : "regular"} />
               <span className="flex-1">{n.label}</span>
-              {n.badge && (
-                <span className="chip chip-critical !py-0 !px-2 !text-[10px]">{n.badge}</span>
+              {n.id === "gate" && pendingCount > 0 && (
+                <span className="chip chip-critical !py-0 !px-2 !text-[10px]">{pendingCount}</span>
               )}
             </button>
           );
