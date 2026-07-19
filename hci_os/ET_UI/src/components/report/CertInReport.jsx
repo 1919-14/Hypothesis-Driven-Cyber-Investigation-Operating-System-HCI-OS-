@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { INCIDENT, TIMELINE_EVENTS, AUDIT_LOG } from "@/mock/data";
 import { TID } from "@/constants/testIds";
 import { FileText, Download, RefreshCw, ShieldAlert, CheckCircle2, Loader } from "lucide-react";
 import { useCertIn, downloadCertInMarkdown } from "@/api/useCertIn";
@@ -7,11 +6,12 @@ import { useCertIn, downloadCertInMarkdown } from "@/api/useCertIn";
 const pad = (n) => n.toString().padStart(2, "0");
 
 const useCountdown = (deadlineHours) => {
-  const [seconds, setSeconds] = useState(deadlineHours * 3600 - 43); // 43s already elapsed
+  const [seconds, setSeconds] = useState(deadlineHours ? deadlineHours * 3600 - 43 : 0);
   useEffect(() => {
+    if (!deadlineHours) return;
     const iv = setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(iv);
-  }, []);
+  }, [deadlineHours]);
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
@@ -27,11 +27,31 @@ const Row = ({ label, value, mono = false }) => (
 
 const CertInReport = () => {
   const { data, refetch, isLoading } = useCertIn("latest");
-  const incident = data?.incident ?? INCIDENT;
-  const timelineEvents = data?.timeline_events ?? TIMELINE_EVENTS;
-  const auditExcerpt = data?.audit_excerpt ?? AUDIT_LOG;
+  const incident = data?.incident;
+  const timelineEvents = data?.timeline_events ?? [];
+  const auditExcerpt = data?.audit_excerpt ?? [];
   const [generated, setGenerated] = useState(true);
-  const countdown = useCountdown(incident.cert_in_deadline_hours ?? 6);
+  const countdown = useCountdown(incident?.cert_in_deadline_hours ?? 0);
+
+  if (isLoading) {
+    return (
+      <div className="panel p-6 text-center text-slate-500">
+        <Loader className="animate-spin inline-block mr-2" size={16} /> Loading compliance report...
+      </div>
+    );
+  }
+
+  if (!incident) {
+    return (
+      <div className="panel p-8 text-center text-[var(--hci-text-3)] flex flex-col items-center justify-center">
+        <FileText size={40} className="mb-3 opacity-20 text-[var(--hci-brand)]" />
+        <div className="font-semibold text-[14px]">No Compliance Report Available</div>
+        <div className="text-[12.5px] mt-1 max-w-sm">
+          No incident data has been recorded yet. Please ingest a security event through the console to auto-generate the draft.
+        </div>
+      </div>
+    );
+  }
 
   const download = () => downloadCertInMarkdown("latest").catch(() => {
     // fallback to local markdown build
@@ -68,7 +88,7 @@ const CertInReport = () => {
             <div className="flex items-center gap-2 mb-3">
               <ShieldAlert size={18} className="text-[var(--hci-critical)]" />
               <div className="font-head font-bold text-[18px]">
-                Section 70B · Cyber Incident Report — {INCIDENT.hypothesis_id}
+                Section 70B · Cyber Incident Report — {incident.hypothesis_id}
               </div>
             </div>
             <div className="text-[12.5px] text-[var(--hci-text-2)] mb-4 leading-relaxed">
@@ -123,7 +143,7 @@ const CertInReport = () => {
             <div className="panel-raised p-4">
               <div className="label-caps mb-2">6-Hour SLA Countdown</div>
               <div className="font-mono text-[24px] font-bold text-[var(--hci-critical)]">{countdown}</div>
-              <div className="text-[11.5px] text-[var(--hci-text-3)] mt-1">since detection @ {INCIDENT.detection_ts}</div>
+              <div className="text-[11.5px] text-[var(--hci-text-3)] mt-1">since detection @ {incident.detection_ts}</div>
             </div>
             <div className="panel-raised p-4">
               <div className="label-caps mb-2">Audit Chain Excerpt</div>

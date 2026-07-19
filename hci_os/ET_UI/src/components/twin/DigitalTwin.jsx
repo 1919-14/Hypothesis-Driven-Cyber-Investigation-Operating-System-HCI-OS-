@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import cytoscape from "cytoscape";
-import { GRAPH, TWIN_PATH } from "@/mock/data";
 import { TID } from "@/constants/testIds";
-import { Play, RotateCcw, FlaskConical, Bug, Loader, AlertTriangle } from "lucide-react";
+import { Play, RotateCcw, FlaskConical, Bug, Loader, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useDigitalTwinGraph, useDigitalTwinSimulate } from "@/api/useDigitalTwin";
 
 const SEV = {
@@ -23,17 +22,11 @@ const DigitalTwin = () => {
   const { data: twinData, isLoading: graphLoading } = useDigitalTwinGraph();
   const simulate = useDigitalTwinSimulate();
 
-  // Determine graph elements: backend graph or fallback to mock GRAPH
-  const liveElements = twinData?.elements ?? null;
-  const graphElements = liveElements ?? [
-    ...GRAPH.nodes.map((n) => ({ data: { ...n.data, severity: "clean" } })),
-    ...GRAPH.edges.filter((e) => e.data.kind !== "blocked_extra"),
-  ];
-  const isUsingMock = !liveElements;
+  const graphElements = twinData?.elements ?? [];
 
   // Build Cytoscape whenever graph source changes
   useEffect(() => {
-    if (!ref.current) return;
+    if (!ref.current || graphElements.length === 0) return;
     if (cyRef.current) { try { cyRef.current.destroy(); } catch (_) {} }
 
     const cy = cytoscape({
@@ -103,7 +96,7 @@ const DigitalTwin = () => {
     });
     cyRef.current = cy;
     return () => { try { cy.destroy(); } catch (_) {} };
-  }, [twinData]);  // Re-render when live graph arrives
+  }, [twinData, graphElements]);
 
   const resetGraph = () => {
     if (!cyRef.current) return;
@@ -116,7 +109,6 @@ const DigitalTwin = () => {
     simulate.reset?.();
   };
 
-  // Animate a hop path array [{node, t, label}] onto the Cytoscape graph
   const animatePath = (path) => {
     setAnimRunning(true);
     setLog([]);
@@ -159,11 +151,8 @@ const DigitalTwin = () => {
 
   const handleSimulate = async () => {
     if (animRunning) return;
-
-    // Try live backend simulation
     try {
       const result = await simulate.mutateAsync({});
-      // Backend returns { attack_path: [{node_id, label, hop_index}], timeline: [{t, event}] }
       const backendPath = (result.attack_path ?? []).map((hop, idx) => ({
         node:  hop.node_id ?? hop.node ?? hop.id,
         t:     hop.t ?? idx * 3,
@@ -171,16 +160,33 @@ const DigitalTwin = () => {
       }));
       if (backendPath.length > 0) {
         animatePath(backendPath);
-        return;
       }
     } catch (_) {
-      // Backend not running — fall through to mock path
+      // Backend not running/failed
     }
-    // Fallback to mock TWIN_PATH
-    animatePath(TWIN_PATH);
   };
 
-  const totalHops = simulate.data?.attack_path?.length ?? TWIN_PATH.length;
+  if (graphLoading) {
+    return (
+      <div className="panel p-8 text-center text-slate-500 min-h-[460px] flex items-center justify-center">
+        <Loader className="animate-spin mr-2" size={16} /> Loading Digital Twin infrastructure...
+      </div>
+    );
+  }
+
+  if (graphElements.length === 0) {
+    return (
+      <div className="panel p-8 text-center text-[var(--hci-text-3)] flex flex-col items-center justify-center min-h-[460px]">
+        <Bug size={40} className="mb-3 opacity-20 text-[var(--hci-brand)]" />
+        <div className="font-semibold text-[14px]">No Digital Twin Topology Available</div>
+        <div className="text-[12.5px] mt-1 max-w-sm">
+          The sandboxed simulation topology is not loaded. Please ensure the backend is running.
+        </div>
+      </div>
+    );
+  }
+
+  const totalHops = simulate.data?.attack_path?.length ?? 0;
   const reached   = simulate.data?.reached_target;
 
   return (
@@ -190,12 +196,6 @@ const DigitalTwin = () => {
           <FlaskConical size={16} className="text-[var(--hci-brand)]" />
           <div className="font-head font-bold text-[14.5px]">Cyber Resilience Digital Twin</div>
           <span className="chip chip-warning font-mono">SIMULATION · RED-TEAM ONLY</span>
-          {graphLoading && <Loader size={12} className="animate-spin text-[var(--hci-text-3)]" />}
-          {isUsingMock && (
-            <span className="chip chip-warning text-[10px] flex items-center gap-1">
-              <AlertTriangle size={10} /> mock graph
-            </span>
-          )}
           {reached === true  && <span className="chip chip-critical">TARGET REACHED</span>}
           {reached === false && <span className="chip chip-clean">CONTAINED</span>}
           <div className="ml-auto flex items-center gap-2">
@@ -215,9 +215,7 @@ const DigitalTwin = () => {
         </div>
         <div ref={ref} className="cy-container" style={{ minHeight: 460 }} />
         <div className="px-5 py-2.5 border-t border-[var(--hci-border)] bg-[#fbfcfd] text-[11.5px] text-[var(--hci-text-3)]">
-          {isUsingMock
-            ? "Backend offline — showing mock topology. Start the FastAPI server for live graph."
-            : `Live infrastructure graph · ${(twinData?.elements ?? []).length} elements loaded`}
+          Live infrastructure graph · {graphElements.length} elements loaded.
         </div>
       </div>
 

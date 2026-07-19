@@ -46,6 +46,15 @@ const HumanGatePanel = ({ compact = false }) => {
         <span className="ml-auto label-caps whitespace-nowrap">SLA · 15 min</span>
       </div>
       <div className="flex-1 overflow-auto">
+        {rows.length === 0 && !isLoading && (
+          <div className="p-8 text-center text-[var(--hci-text-3)] flex flex-col items-center justify-center h-full">
+            <CheckCircle2 size={32} className="mb-2 text-emerald-500 opacity-60" />
+            <div className="font-semibold text-[12.5px]">All Gates Cleared</div>
+            <div className="text-[11.5px] mt-0.5 max-w-[200px] mx-auto">
+              No decisions pending human authorization at this time.
+            </div>
+          </div>
+        )}
         {rows.map((r) => {
           const left = timeLeft(r);
           const slaCritical = left < 300;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { TID } from "@/constants/testIds";
 import { ROLES } from "@/mock/data";
+import { useTimeline } from "@/api/useTimeline";
 import { ChevronDown, Search, Bell, HelpCircle } from "lucide-react";
 import KillSwitch from "./KillSwitch";
 
@@ -64,14 +65,23 @@ const RoleSwitcher = () => {
 };
 
 const Header = () => {
+  const { data } = useTimeline();
+  const incident = data?.incident;
+
   return (
     <header className="h-14 shrink-0 border-b border-[var(--hci-border)] bg-white px-4 flex items-center gap-3 sticky top-0 z-30 overflow-hidden">
       {/* Left: live incident badge — fixed width, never grows */}
       <div className="shrink-0">
-        <span className="chip chip-critical whitespace-nowrap" data-testid="incident-badge">
-          <span className="live-dot" style={{ width: 6, height: 6 }} />
-          LIVE · HYP-2026-014
-        </span>
+        {incident ? (
+          <span className="chip chip-critical whitespace-nowrap" data-testid="incident-badge">
+            <span className="live-dot" style={{ width: 6, height: 6 }} />
+            LIVE · {incident.hypothesis_id}
+          </span>
+        ) : (
+          <span className="chip chip-neutral whitespace-nowrap" data-testid="incident-badge">
+            STANDBY
+          </span>
+        )}
       </div>
 
       {/* Center: search — fills remaining space, collapses before other items */}

@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { INCIDENT, TIMELINE_EVENTS, AUDIT_LOG } from "@/mock/data";
 
 /**
  * Fetches the CERT-In compliance report data.
@@ -15,11 +14,6 @@ export const useCertIn = (hypothesisId = "latest") => {
       return res.json();
     },
     staleTime: 30_000,
-    placeholderData: {
-      incident:        INCIDENT,
-      timeline_events: TIMELINE_EVENTS,
-      audit_excerpt:   AUDIT_LOG,
-    },
   });
 };
 

@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { AUDIT_LOG } from "@/mock/data";
 
 /**
  * Fetches the live audit chain excerpt from the CERT-In report endpoint.
- * Falls back to mock AUDIT_LOG if the backend is unavailable.
  * The CERT-In endpoint returns { audit_excerpt: [{ts, actor, event, target, hash}] }
  * which matches the shape the AuditPage table expects exactly.
  */
@@ -18,6 +16,5 @@ export const useAuditLog = () => {
       return data.audit_excerpt ?? [];
     },
     refetchInterval: 8_000,
-    placeholderData: AUDIT_LOG,
   });
 };

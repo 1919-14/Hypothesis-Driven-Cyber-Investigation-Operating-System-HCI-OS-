@@ -49,6 +49,18 @@ const Timeline = ({ selectedIdx, onSelect }) => {
 
   const pct = (tSec / T_MAX) * 100;
 
+  if (TIMELINE_EVENTS.length === 0) {
+    return (
+      <div className="panel p-8 text-center text-[var(--hci-text-3)] flex flex-col items-center justify-center min-h-[140px]">
+        <Clock size={32} className="mb-2 opacity-20 text-[var(--hci-brand)]" />
+        <div className="font-semibold text-[13px]">Explainable Timeline Standby</div>
+        <div className="text-[12px] mt-0.5 max-w-sm">
+          No timeline events generated. Ingest a telemetry event to populate the explainable cyber investigation chain.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="panel">
       <div className="px-5 py-3.5 border-b border-[var(--hci-border)] flex items-center gap-3">
