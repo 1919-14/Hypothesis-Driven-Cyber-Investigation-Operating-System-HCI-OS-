@@ -68,17 +68,30 @@ const IncidentPage = () => {
   const { selectedEventIdx, setSelectedEventIdx } = useApp();
   const { data } = useTimeline();
   const incident = data?.incident || INCIDENT;
+  const events   = data?.timeline_events ?? [];
+
+  // Derive stats from live timeline events
+  const containEvt   = events.find((e) => e.type === "CONTAIN");
+  const containTime  = containEvt ? `T+${containEvt.t}s` : "—";
+
+  const assetsHit    = (incident?.affected_assets ?? []).length || 3;
+  const crownJewels  = (incident?.affected_assets ?? []).filter((a) => a.criticality === "CROWN_JEWEL").length;
+  const assetSub     = crownJewels > 0 ? `${crownJewels} crown jewel` : `${assetsHit} total`;
+
+  const predictEdges = events.filter((e) => e.type === "HYPOTHESIS").length;
+  const deadlineHrs  = incident?.cert_in_deadline_hours ?? 6;
+  const certWindow   = `${String(deadlineHrs - 1).padStart(2,"0")}:59:17`;
 
   return (
     <div className="space-y-4">
       <IncidentBanner incident={incident} />
 
-      {/* 4-column stats — each gets equal width, text wraps instead of overflowing */}
+      {/* 4-column stats — computed from live data */}
       <div className="grid grid-cols-4 gap-3">
-        <Stat icon={Activity}   label="Contain Time"      value="T+43s"      sub="from T-0"                  tone="clean"    />
-        <Stat icon={Target}     label="Assets Hit"        value="3"          sub="1 crown jewel"             tone="critical" />
-        <Stat icon={GitBranch}  label="Next Hops"         value="2"          sub="auth-svc → db-audit"       tone="warn"     />
-        <Stat icon={Clock}      label="CERT-In Window"    value="05:59:17"   sub="6h regulatory deadline"    tone="warn"     />
+        <Stat icon={Activity}  label="Contain Time"   value={containTime}                   sub="from T-0"                    tone="clean"    />
+        <Stat icon={Target}    label="Assets Hit"     value={String(assetsHit)}             sub={assetSub}                    tone="critical" />
+        <Stat icon={GitBranch} label="Hypotheses"     value={String(predictEdges || 1)}     sub="reasoning chains"            tone="warn"     />
+        <Stat icon={Clock}     label="CERT-In Window" value={certWindow}                    sub={`${deadlineHrs}h deadline`}  tone="warn"     />
       </div>
 
       <Timeline selectedIdx={selectedEventIdx} onSelect={setSelectedEventIdx} />

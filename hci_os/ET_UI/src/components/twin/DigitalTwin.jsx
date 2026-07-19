@@ -2,23 +2,43 @@ import React, { useEffect, useRef, useState } from "react";
 import cytoscape from "cytoscape";
 import { GRAPH, TWIN_PATH } from "@/mock/data";
 import { TID } from "@/constants/testIds";
-import { Play, RotateCcw, FlaskConical, Bug } from "lucide-react";
+import { Play, RotateCcw, FlaskConical, Bug, Loader, AlertTriangle } from "lucide-react";
+import { useDigitalTwinGraph, useDigitalTwinSimulate } from "@/api/useDigitalTwin";
 
-const SEV = { clean: "#059669", suspicious: "#ea580c", critical: "#dc2626", warning: "#d97706" };
+const SEV = {
+  clean:      "#059669",
+  suspicious: "#ea580c",
+  critical:   "#dc2626",
+  warning:    "#d97706",
+};
 
 const DigitalTwin = () => {
-  const ref = useRef(null);
-  const cyRef = useRef(null);
-  const [running, setRunning] = useState(false);
-  const [step, setStep] = useState(-1);
-  const [log, setLog] = useState([]);
+  const ref    = useRef(null);
+  const cyRef  = useRef(null);
+  const [step, setStep]     = useState(-1);
+  const [log,  setLog]      = useState([]);
+  const [animRunning, setAnimRunning] = useState(false);
 
+  // --- Live backend hooks ---
+  const { data: twinData, isLoading: graphLoading } = useDigitalTwinGraph();
+  const simulate = useDigitalTwinSimulate();
+
+  // Determine graph elements: backend graph or fallback to mock GRAPH
+  const liveElements = twinData?.elements ?? null;
+  const graphElements = liveElements ?? [
+    ...GRAPH.nodes.map((n) => ({ data: { ...n.data, severity: "clean" } })),
+    ...GRAPH.edges.filter((e) => e.data.kind !== "blocked_extra"),
+  ];
+  const isUsingMock = !liveElements;
+
+  // Build Cytoscape whenever graph source changes
   useEffect(() => {
     if (!ref.current) return;
-    const nodes = GRAPH.nodes.map((n) => ({ data: { ...n.data, severity: "clean" } }));
+    if (cyRef.current) { try { cyRef.current.destroy(); } catch (_) {} }
+
     const cy = cytoscape({
       container: ref.current,
-      elements: [...nodes, ...GRAPH.edges.filter((e) => e.data.kind !== "blocked_extra")],
+      elements: graphElements,
       wheelSensitivity: 0.2,
       style: [
         {
@@ -36,11 +56,16 @@ const DigitalTwin = () => {
             "text-valign": "bottom",
             "width": 44,
             "height": 44,
+            "transition-property": "background-color, border-width, border-color",
+            "transition-duration": "0.35s",
           },
         },
         {
           selector: "node.active",
-          style: { "border-color": "#0a58ca", "border-width": 5 },
+          style: {
+            "border-color": "#0a58ca",
+            "border-width": 5,
+          },
         },
         {
           selector: "edge",
@@ -51,53 +76,36 @@ const DigitalTwin = () => {
             "target-arrow-color": "#cbd5e1",
             "width": 2,
             "opacity": 0.6,
+            "transition-property": "line-color, width, opacity",
+            "transition-duration": "0.3s",
           },
         },
         {
           selector: "edge.hot",
-          style: { "line-color": "#dc2626", "target-arrow-color": "#dc2626", "width": 4, "line-style": "solid", "opacity": 1 },
+          style: {
+            "line-color": "#dc2626",
+            "target-arrow-color": "#dc2626",
+            "width": 4,
+            "line-style": "solid",
+            "opacity": 1,
+          },
         },
       ],
-      layout: { name: "breadthfirst", directed: true, padding: 30, spacingFactor: 1.25, roots: ["internet"] },
+      layout: {
+        name: "breadthfirst",
+        directed: true,
+        padding: 30,
+        spacingFactor: 1.25,
+        roots: graphElements.some((el) => el.data?.id === "internet" || el.data?.id === "CBSE-WebSvr-01")
+          ? [graphElements.find((el) => el.data?.id === "internet" || el.data?.id === "CBSE-WebSvr-01")?.data?.id]
+          : undefined,
+      },
     });
     cyRef.current = cy;
-    return () => cy.destroy();
-  }, []);
+    return () => { try { cy.destroy(); } catch (_) {} };
+  }, [twinData]);  // Re-render when live graph arrives
 
-  const simulate = () => {
-    if (!cyRef.current) return;
-    // reset
-    cyRef.current.nodes().forEach((n) => n.data("severity", "clean"));
-    cyRef.current.nodes().removeClass("active");
-    cyRef.current.edges().removeClass("hot");
-    cyRef.current.style().update();
-    setLog([]);
-    setStep(0);
-    setRunning(true);
-
-    TWIN_PATH.forEach((hop, i) => {
-      setTimeout(() => {
-        const node = cyRef.current.$id(hop.node);
-        const severity = i === 0 ? "suspicious" : i === TWIN_PATH.length - 1 ? "critical" : i > TWIN_PATH.length / 2 ? "critical" : "suspicious";
-        node.data("severity", severity);
-        node.addClass("active");
-        if (i > 0) {
-          const prev = TWIN_PATH[i - 1].node;
-          cyRef.current.edges().forEach((e) => {
-            if ((e.source().id() === prev && e.target().id() === hop.node) || (e.source().id() === hop.node && e.target().id() === prev)) {
-              e.addClass("hot");
-            }
-          });
-        }
-        cyRef.current.style().update();
-        setStep(i);
-        setLog((l) => [...l, { t: hop.t, node: hop.node, label: hop.label, sev: severity }]);
-        if (i === TWIN_PATH.length - 1) setRunning(false);
-      }, i * 900);
-    });
-  };
-
-  const reset = () => {
+  const resetGraph = () => {
     if (!cyRef.current) return;
     cyRef.current.nodes().forEach((n) => n.data("severity", "clean"));
     cyRef.current.nodes().removeClass("active");
@@ -105,7 +113,75 @@ const DigitalTwin = () => {
     cyRef.current.style().update();
     setLog([]);
     setStep(-1);
+    simulate.reset?.();
   };
+
+  // Animate a hop path array [{node, t, label}] onto the Cytoscape graph
+  const animatePath = (path) => {
+    setAnimRunning(true);
+    setLog([]);
+    setStep(0);
+    cyRef.current?.nodes().forEach((n) => n.data("severity", "clean"));
+    cyRef.current?.nodes().removeClass("active");
+    cyRef.current?.edges().removeClass("hot");
+    cyRef.current?.style().update();
+
+    path.forEach((hop, i) => {
+      setTimeout(() => {
+        if (!cyRef.current) return;
+        const sev = i === 0 ? "suspicious"
+                  : i === path.length - 1 ? "critical"
+                  : i > path.length / 2 ? "critical"
+                  : "suspicious";
+
+        const node = cyRef.current.$id(hop.node);
+        if (node.length) {
+          node.data("severity", sev);
+          node.addClass("active");
+        }
+        if (i > 0) {
+          const prev = path[i - 1].node;
+          cyRef.current.edges().forEach((e) => {
+            const src = e.source().id();
+            const tgt = e.target().id();
+            if ((src === prev && tgt === hop.node) || (src === hop.node && tgt === prev)) {
+              e.addClass("hot");
+            }
+          });
+        }
+        cyRef.current.style().update();
+        setStep(i);
+        setLog((l) => [...l, { t: hop.t, node: hop.node, label: hop.label, sev }]);
+        if (i === path.length - 1) setAnimRunning(false);
+      }, i * 900);
+    });
+  };
+
+  const handleSimulate = async () => {
+    if (animRunning) return;
+
+    // Try live backend simulation
+    try {
+      const result = await simulate.mutateAsync({});
+      // Backend returns { attack_path: [{node_id, label, hop_index}], timeline: [{t, event}] }
+      const backendPath = (result.attack_path ?? []).map((hop, idx) => ({
+        node:  hop.node_id ?? hop.node ?? hop.id,
+        t:     hop.t ?? idx * 3,
+        label: hop.label ?? hop.action ?? `Hop ${idx + 1}`,
+      }));
+      if (backendPath.length > 0) {
+        animatePath(backendPath);
+        return;
+      }
+    } catch (_) {
+      // Backend not running — fall through to mock path
+    }
+    // Fallback to mock TWIN_PATH
+    animatePath(TWIN_PATH);
+  };
+
+  const totalHops = simulate.data?.attack_path?.length ?? TWIN_PATH.length;
+  const reached   = simulate.data?.reached_target;
 
   return (
     <div className="grid grid-cols-12 gap-4">
@@ -114,18 +190,34 @@ const DigitalTwin = () => {
           <FlaskConical size={16} className="text-[var(--hci-brand)]" />
           <div className="font-head font-bold text-[14.5px]">Cyber Resilience Digital Twin</div>
           <span className="chip chip-warning font-mono">SIMULATION · RED-TEAM ONLY</span>
+          {graphLoading && <Loader size={12} className="animate-spin text-[var(--hci-text-3)]" />}
+          {isUsingMock && (
+            <span className="chip chip-warning text-[10px] flex items-center gap-1">
+              <AlertTriangle size={10} /> mock graph
+            </span>
+          )}
+          {reached === true  && <span className="chip chip-critical">TARGET REACHED</span>}
+          {reached === false && <span className="chip chip-clean">CONTAINED</span>}
           <div className="ml-auto flex items-center gap-2">
-            <button data-testid={TID.twinReset} onClick={reset} className="btn btn-outline btn-sm" disabled={running}>
+            <button data-testid={TID.twinReset} onClick={resetGraph} className="btn btn-outline btn-sm" disabled={animRunning}>
               <RotateCcw size={13} /> Reset
             </button>
-            <button data-testid={TID.twinSimulate} onClick={simulate} className="btn btn-danger btn-sm" disabled={running}>
-              <Play size={13} /> {running ? "Simulating…" : "Simulate Attack"}
+            <button
+              data-testid={TID.twinSimulate}
+              onClick={handleSimulate}
+              className="btn btn-danger btn-sm"
+              disabled={animRunning || simulate.isPending}
+            >
+              {(animRunning || simulate.isPending) ? <Loader size={13} className="animate-spin" /> : <Play size={13} />}
+              {animRunning ? "Simulating…" : simulate.isPending ? "Loading…" : "Simulate Attack"}
             </button>
           </div>
         </div>
         <div ref={ref} className="cy-container" style={{ minHeight: 460 }} />
         <div className="px-5 py-2.5 border-t border-[var(--hci-border)] bg-[#fbfcfd] text-[11.5px] text-[var(--hci-text-3)]">
-          Environment is a sandboxed replica. No production side effects.
+          {isUsingMock
+            ? "Backend offline — showing mock topology. Start the FastAPI server for live graph."
+            : `Live infrastructure graph · ${(twinData?.elements ?? []).length} elements loaded`}
         </div>
       </div>
 
@@ -133,7 +225,7 @@ const DigitalTwin = () => {
         <div className="px-4 py-3 border-b border-[var(--hci-border)] flex items-center gap-2">
           <Bug size={15} className="text-[var(--hci-critical)]" />
           <div className="font-head font-bold text-[13.5px]">Detection Timeline</div>
-          <span className="ml-auto chip chip-neutral">{log.length} / {TWIN_PATH.length} hops</span>
+          <span className="ml-auto chip chip-neutral">{log.length} / {totalHops} hops</span>
         </div>
         <div className="flex-1 overflow-auto p-4 space-y-3">
           {log.length === 0 && (

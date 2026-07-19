@@ -3,7 +3,7 @@ import { TID } from "@/constants/testIds";
 import { Play, Pause, RotateCcw, Clock, ChevronRight } from "lucide-react";
 import { useTimeline } from "@/api/useTimeline";
 
-const T_MAX = 43;
+const DEFAULT_T_MAX = 43;
 
 const severityColor = (s) => ({
   critical: "#dc2626",
@@ -24,6 +24,12 @@ const chipCls = (s) => ({
 const Timeline = ({ selectedIdx, onSelect }) => {
   const { data } = useTimeline();
   const TIMELINE_EVENTS = data?.timeline_events ?? [];
+
+  // Compute T_MAX from actual events so the ruler scales correctly for real data
+  const T_MAX = TIMELINE_EVENTS.length > 0
+    ? Math.max(DEFAULT_T_MAX, TIMELINE_EVENTS[TIMELINE_EVENTS.length - 1].t)
+    : DEFAULT_T_MAX;
+
   const [tSec, setTSec] = useState(0);
   const [playing, setPlaying] = useState(false);
 
