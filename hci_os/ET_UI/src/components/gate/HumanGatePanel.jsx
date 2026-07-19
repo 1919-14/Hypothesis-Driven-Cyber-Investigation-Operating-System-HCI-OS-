@@ -73,9 +73,9 @@ const HumanGatePanel = ({ compact = false }) => {
                     {r.action_taken}
                   </div>
                   <div className="mt-1 flex items-center gap-4 text-[11.5px] text-[var(--hci-text-3)] font-mono">
-                    <span>risk <span className="text-[var(--hci-text)] font-semibold">{r.risk_score.toFixed(2)}</span></span>
-                    <span>blast_radius <span className="text-[var(--hci-text)] font-semibold">{r.blast_radius_score.toFixed(2)}</span></span>
-                    <span>ts {new Date(r.ts_iso).toLocaleTimeString()}</span>
+                    <span>risk <span className="text-[var(--hci-text)] font-semibold">{(r.risk_score ?? 0).toFixed(2)}</span></span>
+                    <span>blast_radius <span className="text-[var(--hci-text)] font-semibold">{(r.blast_radius_score ?? 0).toFixed(2)}</span></span>
+                    <span>ts {r.ts_iso ? new Date(r.ts_iso).toLocaleTimeString() : "—"}</span>
                   </div>
 
                   {acted ? (

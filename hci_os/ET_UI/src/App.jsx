@@ -8,6 +8,7 @@ import IncidentPage from "@/pages/IncidentPage";
 import DigitalTwin from "@/components/twin/DigitalTwin";
 import CertInReport from "@/components/report/CertInReport";
 import { TopologyPage, GatePage, AuditPage, ExecPage, HealthPage } from "@/pages/OtherPages";
+import ErrorBoundary from "@/components/layout/ErrorBoundary";
 
 const Router = () => {
   const { route } = useApp();
@@ -30,11 +31,15 @@ const Shell = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header />
-        <main className="flex-1 blueprint-grid p-5 overflow-x-hidden overflow-y-auto">
-          <Router />
+        <main className="flex-1 blueprint-grid p-5 overflow-x-hidden overflow-y-auto" data-testid="main-content">
+          <ErrorBoundary title="Page Error">
+            <Router />
+          </ErrorBoundary>
         </main>
       </div>
-      <Chatbot />
+      <ErrorBoundary title="Chatbot Error">
+        <Chatbot />
+      </ErrorBoundary>
     </div>
   );
 };
