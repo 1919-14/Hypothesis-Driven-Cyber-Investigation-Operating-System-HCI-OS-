@@ -4,7 +4,7 @@ import { ROLES } from "@/mock/data";
 const AppCtx = createContext(null);
 
 export const AppProvider = ({ children }) => {
-  const [roleId, setRoleId] = useState("soc");
+  const [roleId, setRoleId] = useState("sysadmin");
   const [killActive, setKillActive] = useState(false);
   const [route, setRoute] = useState("incident"); // incident | gate | twin | report | audit | health
   const [selectedEventIdx, setSelectedEventIdx] = useState(null);

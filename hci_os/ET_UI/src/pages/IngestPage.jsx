@@ -1,11 +1,13 @@
 import React, { useState, useRef, useCallback } from "react";
 import {
   UploadCloud, FileJson, FileText, FileSpreadsheet, File, Zap, Trash2,
-  CheckCircle, AlertCircle, Loader, ChevronDown, ChevronRight, Send,
+  CheckCircle, AlertCircle, Loader, Send,
   Terminal, ShieldAlert, Database, Wifi, Eye, X, RefreshCw,
+  GitMerge,
 } from "lucide-react";
 import { useIngest } from "@/api/useIngest";
 import { fileToRecords, manualInputToRecord, ACCEPTED_EXTENSIONS, isSupportedFile } from "@/utils/converter";
+import PipelineTraceCard from "@/components/ingest/PipelineTraceCard";
 
 // ── Attack Templates ──────────────────────────────────────────────────────────
 const TEMPLATES = [
@@ -133,41 +135,7 @@ const statusBadge = (status) => {
   return null;
 };
 
-// ── Event Result Card ─────────────────────────────────────────────────────────
-const ResultCard = ({ item, onExpand, expanded }) => (
-  <div className={`rounded-lg border text-[12px] overflow-hidden transition-all ${
-    item.status === "success" ? "border-emerald-200 bg-emerald-50"
-    : item.status === "error" ? "border-red-200 bg-red-50"
-    : "border-slate-200 bg-white"
-  }`}>
-    <div
-      className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer"
-      onClick={onExpand}
-    >
-      {statusBadge(item.status)}
-      <span className="font-mono font-semibold flex-1 truncate">{item.label}</span>
-      <span className="text-[10.5px] text-[var(--hci-text-3)]">{item.source}</span>
-      {item.result?.hypothesis_id && (
-        <span className="chip chip-info text-[10px] font-mono">{item.result.hypothesis_id}</span>
-      )}
-      {item.result?.trust_score != null && (
-        <span className="chip chip-neutral text-[10px]">trust {item.result.trust_score?.toFixed(2)}</span>
-      )}
-      {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-    </div>
-    {expanded && (
-      <div className="border-t border-slate-200 px-4 py-3 bg-white">
-        {item.status === "error" ? (
-          <div className="text-red-600 font-mono text-[11px]">{item.error}</div>
-        ) : (
-          <pre className="text-[10.5px] font-mono text-slate-700 overflow-auto max-h-48 whitespace-pre-wrap">
-            {JSON.stringify(item.result, null, 2)}
-          </pre>
-        )}
-      </div>
-    )}
-  </div>
-);
+// ResultCard replaced by PipelineTraceCard (imported above)
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const IngestPage = () => {
@@ -424,11 +392,11 @@ const IngestPage = () => {
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN: Live Event Feed ─────────────────────────────── */}
+        {/* ── RIGHT COLUMN: Pipeline Trace Feed ─────────────────────────── */}
         <div className="col-span-7 panel flex flex-col" style={{ minHeight: 560 }}>
           <div className="px-5 py-3 border-b border-[var(--hci-border)] flex items-center gap-2 shrink-0">
-            <Eye size={15} className="text-[var(--hci-brand)]" />
-            <span className="font-head font-bold text-[13.5px]">Live Event Feed</span>
+            <GitMerge size={15} className="text-[var(--hci-brand)]" />
+            <span className="font-head font-bold text-[13.5px]">Pipeline Explainability Trace</span>
             <span className="chip chip-info ml-1">{log.length} events</span>
             {log.length > 0 && (
               <button
@@ -453,12 +421,12 @@ const IngestPage = () => {
                 <UploadCloud size={40} className="mb-4 opacity-20" />
                 <div className="font-semibold text-[13px]">No events ingested yet</div>
                 <div className="text-[12px] mt-1 max-w-xs">
-                  Upload a file or use a template on the left to inject events into the A1 pipeline.
+                  Use a template on the left and click <strong>Inject Event</strong> to see the full A1→A12 pipeline trace.
                 </div>
               </div>
             )}
             {log.map((item) => (
-              <ResultCard
+              <PipelineTraceCard
                 key={item.id}
                 item={item}
                 expanded={expandedId === item.id}

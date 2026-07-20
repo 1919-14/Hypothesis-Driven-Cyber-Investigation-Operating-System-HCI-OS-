@@ -27,7 +27,13 @@ from typing import Any, Dict, List, Optional
 import networkx as nx
 
 from dotenv import load_dotenv
-load_dotenv()
+# Load unified master env file from workspace root (three levels up from stores/neo4j_store.py)
+_ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+_env_path = _ROOT_DIR / ".env"
+if _env_path.exists():
+    load_dotenv(dotenv_path=_env_path)
+else:
+    load_dotenv()
 
 logger = logging.getLogger("Neo4jStore")
 

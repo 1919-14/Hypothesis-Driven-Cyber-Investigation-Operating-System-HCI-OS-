@@ -403,12 +403,25 @@ class GNNEnsemble:
             else:
                 status, color = "clean", "#2ecc71"
 
+            # Map type to kind for AttackGraph.jsx styling
+            ntype = node.get("type", "")
+            _KIND_MAP = {
+                "Computer": "server", "IP": "cloud", "User": "service",
+                "Asset": "server", "OTSensor": "db", "Technique": "firewall",
+                "Tactic": "firewall", "ThreatGroup": "crown", "Mitigation": "service",
+                "Software": "cloud", "Campaign": "crown", "Entity": "server",
+            }
+            kind = _KIND_MAP.get(ntype, "server")
+            severity = "critical" if status == "compromised" else ("warning" if status == "predicted" else status)
+
             elements.append({
                 "group": "nodes",
                 "data": {
                     "id": nid,
                     "label": node.get("label", nid),
-                    "type": node.get("type", ""),
+                    "type": ntype,
+                    "kind": kind,
+                    "severity": severity,
                     "criticality": node.get("criticality", 0.5),
                     "status": status,
                     "color": color,

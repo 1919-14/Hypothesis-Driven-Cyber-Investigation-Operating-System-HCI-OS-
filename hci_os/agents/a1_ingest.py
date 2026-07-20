@@ -67,6 +67,17 @@ _TRUST_TABLE: Dict[str, float] = {
     "internal": 0.70,
     # Partner / third-party feeds
     "partner":  0.50,
+    # ── UI Manual Injection (SOC analyst test events, hackathon demo) ──────────
+    # Normalized variants: "ui-manual" → "uimanual", "ui_template" → "uitemplate", etc.
+    "uimanual":   0.85,
+    "uitemplate": 0.85,
+    "uiupload":   0.85,
+    "manual":     0.85,
+    "template":   0.85,
+    "upload":     0.85,
+    "demo":       0.80,
+    "test":       0.80,
+    "simulation": 0.80,
 }
 
 _TRUST_UNKNOWN = 0.00  # unknown → quarantine

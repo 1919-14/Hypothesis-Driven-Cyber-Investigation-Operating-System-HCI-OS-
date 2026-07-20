@@ -35,6 +35,7 @@ export const useDecisions = (role) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
+      queryClient.invalidateQueries({ queryKey: ["pipelineHistory"] });
     },
   });
 

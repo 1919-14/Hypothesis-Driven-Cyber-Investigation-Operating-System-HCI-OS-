@@ -439,3 +439,35 @@ body {
         animation: none;
     }
 }
+
+/* ── PDF / Print Export ─────────────────────────────────────────────────────── */
+@media print {
+    /* Hide everything */
+    body * { visibility: hidden !important; }
+
+    /* Show only the printable area */
+    .printable-area,
+    .printable-area * { visibility: visible !important; }
+
+    .printable-area {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #ffffff !important;
+        color: #111827 !important;
+        padding: 32px;
+        box-sizing: border-box;
+        font-family: "IBM Plex Sans", sans-serif;
+    }
+
+    /* Force light colours so the report prints cleanly */
+    .printable-area .chip-critical { background: #fee2e2 !important; color: #991b1b !important; }
+    .printable-area .chip-warning  { background: #fef3c7 !important; color: #92400e !important; }
+    .printable-area .chip-clean    { background: #d1fae5 !important; color: #065f46 !important; }
+    .printable-area .chip-info     { background: #dbeafe !important; color: #1e3a8a !important; }
+    .printable-area .chip-neutral  { background: #f1f5f9 !important; color: #334155 !important; }
+
+    /* Hide buttons and non-content chrome */
+    .no-print { display: none !important; }
+}

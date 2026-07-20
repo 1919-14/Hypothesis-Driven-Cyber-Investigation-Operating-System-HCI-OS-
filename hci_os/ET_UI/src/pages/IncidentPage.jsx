@@ -6,6 +6,28 @@ import HumanGatePanel from "@/components/gate/HumanGatePanel";
 import { useTimeline } from "@/api/useTimeline";
 import { ShieldAlert, Activity, Target, GitBranch, Clock } from "lucide-react";
 
+// Helper to format timestamps to Indian Standard Time (IST)
+const formatDateTimeIST = (isoString) => {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    return d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }) + " IST";
+  } catch (e) {
+    return isoString;
+  }
+};
+
+
 /**
  * Stat card — used in the 4-up metrics row.
  * Labels are kept SHORT (≤ 3 words, no whitespace-nowrap) so they wrap
@@ -69,7 +91,7 @@ const IncidentBanner = ({ incident }) => {
           </div>
           <div className="text-[12px] text-[var(--hci-text-2)]">
             Target: <span className="font-mono text-[var(--hci-text)]">{incident.target}</span>
-            {" · "}Detected {incident.detection_ts}
+            {" · "}Detected {formatDateTimeIST(incident.detection_ts)}
             {" · "}confidence <span className="font-mono">{((incident.confidence || 0) * 100).toFixed(1)}%</span>
           </div>
         </div>

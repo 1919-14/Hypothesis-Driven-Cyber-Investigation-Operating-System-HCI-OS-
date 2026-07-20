@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { TID } from "@/constants/testIds";
 import {
@@ -12,28 +12,38 @@ import {
   Lock,
   LineChart,
   UploadCloud,
+  Brain,
+  GitBranch,
 } from "lucide-react";
 import { useDecisions } from "@/api/useDecisions";
+import { useHealth } from "@/api/useHealth";
+import PipelineTraceModal from "@/components/trace/PipelineTraceModal";
 
 const NAV = [
-  { id: "incident", label: "Incident Timeline", icon: Activity,     roles: ["soc", "reviewer", "ciso", "sysadmin"] },
-  { id: "ingest",   label: "Ingest Events",    icon: UploadCloud,  roles: ["soc", "reviewer", "ciso", "sysadmin"] },
-  { id: "topology", label: "Attack Topology",  icon: Share2,       roles: ["soc", "reviewer", "ciso", "sysadmin"] },
-  { id: "gate",     label: "Human Gate",       icon: Users,        roles: ["soc", "reviewer", "sysadmin"] },
-  { id: "twin",     label: "Digital Twin",     icon: Bug,          roles: ["soc", "reviewer", "sysadmin"] },
-  { id: "report",   label: "CERT-In Report",   icon: FileText,     roles: ["soc", "reviewer", "ciso"] },
-  { id: "exec",     label: "Executive View",   icon: LineChart,    roles: ["ciso"] },
-  { id: "audit",    label: "Audit Chain",      icon: Lock,         roles: ["reviewer", "ciso", "sysadmin"] },
-  { id: "health",   label: "Agent Health",     icon: Cpu,          roles: ["sysadmin"] },
+  { id: "incident",  label: "Incident Timeline", icon: Activity,    roles: ["soc", "reviewer", "ciso", "sysadmin"] },
+  { id: "ingest",    label: "Ingest Events",     icon: UploadCloud, roles: ["soc", "reviewer", "ciso", "sysadmin"] },
+  { id: "aimonitor", label: "AI Monitor",         icon: Brain,       roles: ["soc", "reviewer", "ciso", "sysadmin"] },
+  { id: "topology",  label: "Attack Topology",   icon: Share2,      roles: ["soc", "reviewer", "ciso", "sysadmin"] },
+  { id: "gate",      label: "Human Gate",        icon: Users,       roles: ["soc", "reviewer", "sysadmin"] },
+  { id: "twin",      label: "Digital Twin",      icon: Bug,         roles: ["soc", "reviewer", "sysadmin"] },
+  { id: "report",    label: "CERT-In Report",    icon: FileText,    roles: ["soc", "reviewer", "ciso"] },
+  { id: "exec",      label: "Executive View",    icon: LineChart,   roles: ["ciso"] },
+  { id: "audit",     label: "Audit Chain",       icon: Lock,        roles: ["reviewer", "ciso", "sysadmin"] },
+  { id: "health",    label: "Agent Health",      icon: Cpu,         roles: ["sysadmin"] },
 ];
 
 const Sidebar = () => {
   const { route, setRoute, roleId, role } = useApp();
   const items = NAV.filter((n) => n.roles.includes(roleId));
+  const [showTrace, setShowTrace] = useState(false);
 
   // Dynamic Human Gate pending decisions count
   const { data: decisions } = useDecisions(role);
   const pendingCount = (decisions ?? []).length;
+
+  const { data: health } = useHealth();
+  const agentsMonitored = health?.watchdog?.agents_monitored ?? 11;
+  const systemStatusLabel = health?.healthy ? "System Healthy" : "Degraded State";
 
   // Auto-redirect if switched to a role that does not have access to current route
   useEffect(() => {
@@ -77,16 +87,30 @@ const Sidebar = () => {
         })}
       </nav>
 
+      {/* Pipeline Trace quick-access button */}
+      <div className="px-3 pb-3">
+        <button
+          onClick={() => setShowTrace(true)}
+          className="side-item w-full text-left text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+        >
+          <GitBranch size={16} />
+          <span className="flex-1">Pipeline Trace</span>
+          <span className="chip chip-neutral text-[10px]">HITL</span>
+        </button>
+      </div>
+
       <div className="mt-auto p-4 border-t border-[var(--hci-border)]">
         <div className="label-caps mb-2">Deployment</div>
         <div className="panel-raised p-3 text-[12px] leading-relaxed">
           <div className="flex items-center gap-2 mb-1">
-            <span className="live-dot" />
-            <span className="font-mono">prod-in-south-1</span>
+            <span className={`live-dot ${health?.healthy ? "" : "!bg-amber-500"}`} />
+            <span className="font-mono text-slate-700">prod-in-south-1</span>
           </div>
-          <div className="text-[var(--hci-text-3)]">12 agents online · 3.4M evt/s</div>
+          <div className="text-[var(--hci-text-3)] font-mono text-[11px]">{agentsMonitored} AGENTS ONLINE · {systemStatusLabel.toUpperCase()}</div>
         </div>
       </div>
+
+      {showTrace && <PipelineTraceModal onClose={() => setShowTrace(false)} />}
     </aside>
   );
 };

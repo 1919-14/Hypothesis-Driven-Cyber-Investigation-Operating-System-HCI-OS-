@@ -449,23 +449,39 @@ def enforce_creation_authorization(agent_id: str, object_type: str) -> None:
 
 
 def _sd4_log_rejection(agent_id: str, violation_type: str, reason: str, target: str) -> None:
-    """Internal: log SD-4 rejection to sd_log.jsonl (lightweight, avoids circular import)."""
-    _DATA_DIR.mkdir(parents=True, exist_ok=True)
-    entry = {
-        "log_id":         hashlib.sha256(f"{agent_id}{violation_type}{time.time()}".encode()).hexdigest()[:12],
-        "timestamp":      datetime.now(timezone.utc).isoformat() + "Z",
-        "sd_layer":       "SD-4",
-        "agent_id":       agent_id,
-        "violation_type": violation_type,
-        "reason":         reason,
-        "target":         target,
-    }
+    """
+    Internal: log SD-4 rejection via a12_audit.log_rejection to maintain
+    the tamper-evident hash chain in sd_log.jsonl.
+    Uses a local import to avoid circular imports at module level.
+    """
     try:
-        sd_log = _DATA_DIR / "sd_log.jsonl"
-        with open(sd_log, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(entry) + "\n")
-    except OSError:
-        pass  # never crash the pipeline on a logging failure
+        from agents.a12_audit import log_rejection  # local import avoids circular dep
+        log_rejection(
+            agent_id=agent_id,
+            violation_type=violation_type,
+            reason=f"{reason} (Target: {target})",
+            input_data={"target": target, "sd_layer": "SD-4"},
+        )
+    except Exception as exc:
+        # Last-resort: write a lightweight entry so we never crash the pipeline
+        _DATA_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            sd_log = _DATA_DIR / "sd_log.jsonl"
+            import hashlib, json
+            entry = {
+                "sd_log_id":      hashlib.sha256(f"{agent_id}{violation_type}{time.time()}".encode()).hexdigest()[:12],
+                "stored_at":      datetime.now(timezone.utc).isoformat() + "Z",
+                "sd_layer":       "SD-4",
+                "agent_id":       agent_id,
+                "violation_type": violation_type,
+                "reason":         reason,
+                "target":         target,
+                "_fallback":      str(exc),
+            }
+            with open(sd_log, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(entry) + "\n")
+        except OSError:
+            pass
 
 
 # =============================================================================

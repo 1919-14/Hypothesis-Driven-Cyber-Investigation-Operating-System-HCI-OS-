@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import Chatbot from "@/components/chatbot/Chatbot";
 import IncidentPage from "@/pages/IncidentPage";
 import IngestPage from "@/pages/IngestPage";
+import AIMonitorPage from "@/pages/AIMonitorPage";
 import DigitalTwin from "@/components/twin/DigitalTwin";
 import CertInReport from "@/components/report/CertInReport";
 import { TopologyPage, GatePage, AuditPage, ExecPage, HealthPage } from "@/pages/OtherPages";
@@ -15,6 +16,7 @@ const Router = () => {
   switch (route) {
     case "incident": return <IncidentPage />;
     case "ingest":   return <IngestPage />;
+    case "aimonitor":return <AIMonitorPage />;
     case "topology": return <TopologyPage />;
     case "gate":     return <GatePage />;
     case "twin":     return <DigitalTwin />;
