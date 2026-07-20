@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PENDING_DECISIONS } from "@/mock/data";
 
 /**
  * Returns the list of pending human-gate decisions and mutation helpers
@@ -16,7 +15,6 @@ export const useDecisions = (role) => {
       return res.json();
     },
     refetchInterval: 5_000,
-    placeholderData: PENDING_DECISIONS,
   });
 
   const mutation = useMutation({
@@ -37,6 +35,7 @@ export const useDecisions = (role) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
+      queryClient.invalidateQueries({ queryKey: ["pipelineHistory"] });
     },
   });
 

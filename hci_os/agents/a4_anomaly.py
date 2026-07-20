@@ -1285,11 +1285,18 @@ def get_detector(**kwargs) -> A4AnomalyDetector:
     return _default_detector
 
 
-def process(evidence: dict) -> dict:
+def process(evidence) -> dict:
     """
     Module-level convenience function for pipeline integration.
     Matches the agent contract: process(evidence) -> result.
     """
+    if not isinstance(evidence, dict):
+        if hasattr(evidence, "model_dump"):
+            evidence = evidence.model_dump()
+        elif hasattr(evidence, "dict"):
+            evidence = evidence.dict()
+        else:
+            evidence = dict(evidence)
     return get_detector().process(evidence)
 
 

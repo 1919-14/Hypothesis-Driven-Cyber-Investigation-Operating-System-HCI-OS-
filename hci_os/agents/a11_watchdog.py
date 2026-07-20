@@ -529,7 +529,13 @@ def health_check() -> Dict[str, Any]:
 
     status = "HEALTHY" if healthy else "DEGRADED"
     logger.info("A11 health_check: %s — %s", status, checks)
-    return {"healthy": healthy, "status": status, "checks": checks}
+    return {
+        "healthy": healthy,
+        "status": status,
+        "checks": checks,
+        "agents_monitored": len(_profiles) if _profiles else 11,
+        "suspended_count": len(SUSPENDED_AGENTS),
+    }
 
 
 # =============================================================================

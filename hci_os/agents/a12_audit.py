@@ -169,6 +169,23 @@ def log_decision(decision: Decision, extra_context: Optional[Dict[str, Any]] = N
 
     _atomic_append(AUDIT_LOG_PATH, json.dumps(entry, default=str))
 
+    # Dual-write to MySQL
+    try:
+        from stores import mysql_store
+        mysql_store.save_decision({
+            "decision_id": entry.get("decision_id"),
+            "hypothesis_id": entry.get("hypothesis_id"),
+            "action_taken": entry.get("action_taken"),
+            "risk_score": entry.get("risk_score"),
+            "blast_radius_score": entry.get("blast_radius_score"),
+            "proposed_by": entry.get("proposed_by", "A7-SOAR"),
+            "human_reviewed": False,
+            "status": "pending",
+            **entry
+        })
+    except Exception as exc:
+        logger.warning("A12: Failed to dual-write decision to MySQL (%s)", exc)
+
     logger.info(
         "A12 AUDIT: logged decision=%s  audit_hash=%s...",
         entry.get("decision_id", "?"),
@@ -299,6 +316,14 @@ def store_hypothesis(hypothesis: Hypothesis, tags: Optional[List[str]] = None) -
         **json.loads(hypothesis.to_json()),
     }
     _atomic_append(COGNITIVE_MEMORY_PATH, json.dumps(entry, default=str))
+
+    # Dual-write to MySQL — use `entry` which is already the fully-serialized form
+    try:
+        from stores import mysql_store
+        mysql_store.save_hypothesis(entry)
+    except Exception as exc:
+        logger.warning("A12: Failed to dual-write hypothesis to MySQL (%s)", exc)
+
     logger.info(
         "A12 MEMORY: stored hypothesis=%s  memory_id=%s",
         hypothesis.hypothesis_id,
@@ -326,6 +351,36 @@ def recall_hypotheses(
     Returns:
         List of matching hypothesis memory entries, newest first.
     """
+    # Attempt to load from MySQL database first (skip when running unit tests)
+    import sys as _sys
+    _in_pytest = "pytest" in _sys.modules or bool(os.environ.get("PYTEST_CURRENT_TEST"))
+    if not _in_pytest:
+        try:
+            from stores import mysql_store
+            db_entries = mysql_store.get_hypotheses(limit=limit * 2)
+            if db_entries:
+                results = []
+                for entry in db_entries:
+                    if state and entry.get("state") != state:
+                        continue
+                    if keyword:
+                        kw_lower = keyword.lower()
+                        searchable = " ".join([
+                            str(entry.get("goal", "")),
+                            str(entry.get("mission_impact", "")),
+                            " ".join(entry.get("tags", [])),
+                            " ".join(entry.get("mitre_chain", [])),
+                        ]).lower()
+                        if kw_lower not in searchable:
+                            continue
+                    results.append(entry)
+                    if len(results) >= limit:
+                        break
+                if results:
+                    return results
+        except Exception as exc:
+            logger.warning("A12: Failed to recall hypotheses from MySQL (%s) — falling back to JSONL", exc)
+
     entries = _read_jsonl(COGNITIVE_MEMORY_PATH)
     entries = list(reversed(entries))  # newest first
 
@@ -883,6 +938,22 @@ def log_rejection(
     entry["sd_chain_hash"] = hashlib.sha256(canonical.encode()).hexdigest()
 
     _atomic_append(SD_LOG_PATH, json.dumps(entry, default=str))
+
+    # Dual-write to MySQL
+    try:
+        from stores import mysql_store
+        mysql_store.save_sd_log({
+            "sd_log_id": entry.get("sd_log_id"),
+            "sd_layer": "SD-7",
+            "agent_id": agent_id,
+            "violation_type": violation_type,
+            "reason": reason,
+            "input_hash": input_hash,
+            "sd_chain_prev": prev_hash,
+            "sd_chain_hash": entry.get("sd_chain_hash"),
+        })
+    except Exception as exc:
+        logger.warning("A12: Failed to dual-write SD log to MySQL (%s)", exc)
 
     logger.info(
         "A12 SD-7: logged rejection agent=%s type=%s hash=%s...",

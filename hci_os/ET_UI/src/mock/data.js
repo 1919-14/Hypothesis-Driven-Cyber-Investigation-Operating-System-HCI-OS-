@@ -125,10 +125,10 @@ export const CHATBOT_RESPONSES = {
 };
 
 export const ROLES = [
+  { id: "sysadmin", label: "SysAdmin", short: "SYS", email: "root@hci-os" },
   { id: "soc", label: "SOC Analyst", short: "SOC", email: "a.sharma@cbse.gov.in" },
   { id: "reviewer", label: "Reviewer", short: "REV", email: "r.gupta@cbse.gov.in" },
   { id: "ciso", label: "CISO", short: "CISO", email: "s.iyer@cbse.gov.in" },
-  { id: "sysadmin", label: "SysAdmin", short: "SYS", email: "root@hci-os" },
 ];
 
 export const AUDIT_LOG = [

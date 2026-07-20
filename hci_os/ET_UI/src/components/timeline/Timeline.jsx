@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { TID } from "@/constants/testIds";
 import { Play, Pause, RotateCcw, Clock, ChevronRight } from "lucide-react";
 import { useTimeline } from "@/api/useTimeline";
+import { useApp } from "@/context/AppContext";
 
-const T_MAX = 43;
+const DEFAULT_T_MAX = 43;
 
 const severityColor = (s) => ({
   critical: "#dc2626",
@@ -22,8 +23,27 @@ const chipCls = (s) => ({
 }[s] || "chip chip-neutral");
 
 const Timeline = ({ selectedIdx, onSelect }) => {
+  const { searchQuery } = useApp();
   const { data } = useTimeline();
-  const TIMELINE_EVENTS = data?.timeline_events ?? [];
+
+  const TIMELINE_EVENTS = useMemo(() => {
+    const rawEvents = data?.timeline_events ?? [];
+    if (!searchQuery) return rawEvents;
+    const q = searchQuery.toLowerCase();
+    return rawEvents.filter((e) =>
+      e.title?.toLowerCase().includes(q) ||
+      e.description?.toLowerCase().includes(q) ||
+      e.type?.toLowerCase().includes(q) ||
+      e.asset_id?.toLowerCase().includes(q) ||
+      e.severity?.toLowerCase().includes(q)
+    );
+  }, [data, searchQuery]);
+
+  // Compute T_MAX from actual events so the ruler scales correctly for real data
+  const T_MAX = TIMELINE_EVENTS.length > 0
+    ? Math.max(DEFAULT_T_MAX, TIMELINE_EVENTS[TIMELINE_EVENTS.length - 1].t)
+    : DEFAULT_T_MAX;
+
   const [tSec, setTSec] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -42,6 +62,18 @@ const Timeline = ({ selectedIdx, onSelect }) => {
   const currentEvent = activeEvents[activeEvents.length - 1];
 
   const pct = (tSec / T_MAX) * 100;
+
+  if (TIMELINE_EVENTS.length === 0) {
+    return (
+      <div className="panel p-8 text-center text-[var(--hci-text-3)] flex flex-col items-center justify-center min-h-[140px]">
+        <Clock size={32} className="mb-2 opacity-20 text-[var(--hci-brand)]" />
+        <div className="font-semibold text-[13px]">Explainable Timeline Standby</div>
+        <div className="text-[12px] mt-0.5 max-w-sm">
+          No timeline events generated. Ingest a telemetry event to populate the explainable cyber investigation chain.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="panel">

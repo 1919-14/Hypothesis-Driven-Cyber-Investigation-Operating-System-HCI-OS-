@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { TID } from "@/constants/testIds";
 import { ROLES } from "@/mock/data";
-import { ChevronDown, Search, Bell, HelpCircle } from "lucide-react";
+import { useTimeline } from "@/api/useTimeline";
+import { useAuditLog } from "@/api/useAuditLog";
+import { ChevronDown, Search, Bell, X } from "lucide-react";
 import KillSwitch from "./KillSwitch";
 
 const RoleSwitcher = () => {
@@ -33,7 +35,7 @@ const RoleSwitcher = () => {
         <ChevronDown size={12} />
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] w-72 panel shadow-lg z-40 overflow-hidden">
+        <div className="absolute right-0 top-[calc(100%+6px)] w-72 panel shadow-lg z-[200] overflow-hidden">
           <div className="px-3 py-2 label-caps border-b border-[var(--hci-border)]">Switch Role · RBAC</div>
           {ROLES.map((r) => (
             <button
@@ -55,7 +57,7 @@ const RoleSwitcher = () => {
             </button>
           ))}
           <div className="px-3 py-2 text-[11px] text-[var(--hci-text-3)] bg-[#f8fafc] border-t border-[var(--hci-border)]">
-            Login flow not wired · switch here to preview views.
+            Role determines which pages and actions are available.
           </div>
         </div>
       )}
@@ -63,32 +65,132 @@ const RoleSwitcher = () => {
   );
 };
 
-const Header = () => {
+// Live notifications panel backed by audit log
+const NotificationPanel = ({ onClose }) => {
+  const { data: entries = [] } = useAuditLog();
+  const recent = entries.slice(0, 8);
   return (
-    <header className="h-14 shrink-0 border-b border-[var(--hci-border)] bg-white px-4 flex items-center gap-3 sticky top-0 z-30 overflow-hidden">
-      {/* Left: live incident badge — fixed width, never grows */}
+    <div className="absolute right-0 top-[calc(100%+6px)] w-80 panel shadow-xl z-[200] overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-[var(--hci-border)] flex items-center justify-between">
+        <span className="font-semibold text-[13px]">Recent Alerts</span>
+        <div className="flex items-center gap-2">
+          <span className="chip chip-info text-[10px]">{recent.length} entries</span>
+          <button onClick={onClose} className="btn btn-ghost !p-1"><X size={12} /></button>
+        </div>
+      </div>
+      {recent.length === 0 ? (
+        <div className="px-4 py-6 text-center text-[12px] text-slate-400">
+          No events yet — ingest an attack event to see alerts here.
+        </div>
+      ) : (
+        <div className="max-h-72 overflow-auto divide-y divide-[var(--hci-border)]">
+          {recent.map((e, i) => (
+            <div key={i} className="px-4 py-2.5 hover:bg-slate-50">
+              <div className="flex items-center gap-2">
+                <span className="chip chip-info text-[9.5px] font-mono">{e.event}</span>
+                <span className="text-[10.5px] text-slate-400 ml-auto font-mono">{e.ts?.slice(11, 19)}</span>
+              </div>
+              <div className="text-[11.5px] text-slate-700 mt-0.5 font-mono truncate">
+                {e.actor} → {e.target}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="px-4 py-2 border-t border-[var(--hci-border)] text-[10.5px] text-slate-400 bg-slate-50">
+        From immutable A12 audit chain · live
+      </div>
+    </div>
+  );
+};
+
+const Header = () => {
+  const { data } = useTimeline();
+  const incident = data?.incident;
+  const { searchQuery, setSearchQuery, setRoute } = useApp();
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef(null);
+  const { data: auditEntries = [] } = useAuditLog();
+  const unread = auditEntries.length;
+
+  useEffect(() => {
+    const onDoc = (e) => { if (bellRef.current && !bellRef.current.contains(e.target)) setBellOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      // Navigate to AI Monitor which shows all agent activity, or incident if matches HYP
+      if (searchQuery.toLowerCase().includes("hyp") || searchQuery.toLowerCase().includes("incident")) {
+        setRoute("incident");
+      } else if (searchQuery.toLowerCase().includes("audit") || searchQuery.toLowerCase().includes("log")) {
+        setRoute("audit");
+      } else if (searchQuery.toLowerCase().includes("gate") || searchQuery.toLowerCase().includes("decision")) {
+        setRoute("gate");
+      } else {
+        setRoute("aimonitor");
+      }
+    }
+  };
+
+  return (
+    <header className="h-14 shrink-0 border-b border-[var(--hci-border)] bg-white px-4 flex items-center gap-3 sticky top-0 z-[9999]">
+      {/* Left: live incident badge */}
       <div className="shrink-0">
-        <span className="chip chip-critical whitespace-nowrap" data-testid="incident-badge">
-          <span className="live-dot" style={{ width: 6, height: 6 }} />
-          LIVE · HYP-2026-014
-        </span>
+        {incident ? (
+          <span className="chip chip-critical whitespace-nowrap" data-testid="incident-badge">
+            <span className="live-dot" style={{ width: 6, height: 6 }} />
+            LIVE · {incident.hypothesis_id}
+          </span>
+        ) : (
+          <span className="chip chip-neutral whitespace-nowrap" data-testid="incident-badge">
+            STANDBY
+          </span>
+        )}
       </div>
 
-      {/* Center: search — fills remaining space, collapses before other items */}
+      {/* Center: search */}
       <div className="flex-1 min-w-0 max-w-xl relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         <input
           data-testid="global-search"
-          placeholder="Search evidence, hypotheses, assets…"
+          placeholder="Search evidence, hypotheses, assets… (Enter to navigate)"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearch}
           className="w-full h-8 pl-9 pr-12 rounded-md bg-[#f8fafc] border border-[var(--hci-border)] text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[var(--hci-brand)] focus:border-transparent"
         />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-12 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 text-[11px]"
+          >
+            Clear
+          </button>
+        )}
         <span className="kbd absolute right-3 top-1/2 -translate-y-1/2 hidden sm:block">⌘K</span>
       </div>
 
-      {/* Right: icons + role + kill switch — all shrink-0 so they never collapse */}
+      {/* Right */}
       <div className="shrink-0 flex items-center gap-1.5">
-        <button className="btn btn-ghost !p-2" data-testid="notifications-btn"><Bell size={15} /></button>
-        <button className="btn btn-ghost !p-2" data-testid="help-btn"><HelpCircle size={15} /></button>
+        {/* Notification bell wired to audit log */}
+        <div className="relative" ref={bellRef}>
+          <button
+            className="btn btn-ghost !p-2 relative"
+            data-testid="notifications-btn"
+            onClick={() => setBellOpen(o => !o)}
+          >
+            <Bell size={15} />
+            {unread > 0 && (
+              <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[var(--hci-critical)] text-white text-[8px] font-bold flex items-center justify-center">
+                {Math.min(unread, 9)}
+              </span>
+            )}
+          </button>
+          {bellOpen && <NotificationPanel onClose={() => setBellOpen(false)} />}
+        </div>
+
         <div className="divider-v mx-1" />
         <RoleSwitcher />
         <div className="divider-v mx-1" />

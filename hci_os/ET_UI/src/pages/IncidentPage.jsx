@@ -4,8 +4,29 @@ import Timeline from "@/components/timeline/Timeline";
 import AttackGraph from "@/components/topology/AttackGraph";
 import HumanGatePanel from "@/components/gate/HumanGatePanel";
 import { useTimeline } from "@/api/useTimeline";
-import { INCIDENT } from "@/mock/data";
 import { ShieldAlert, Activity, Target, GitBranch, Clock } from "lucide-react";
+
+// Helper to format timestamps to Indian Standard Time (IST)
+const formatDateTimeIST = (isoString) => {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    return d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }) + " IST";
+  } catch (e) {
+    return isoString;
+  }
+};
+
 
 /**
  * Stat card — used in the 4-up metrics row.
@@ -32,7 +53,28 @@ const Stat = ({ icon: Icon, label, value, sub, tone = "info" }) => (
 );
 
 const IncidentBanner = ({ incident }) => {
-  const data = incident || INCIDENT;
+  if (!incident) {
+    return (
+      <div className="panel overflow-hidden">
+        <div className="flex items-stretch">
+          <div className="w-1.5 shrink-0 bg-slate-300" />
+          <div className="flex-1 min-w-0 px-4 py-3.5 flex flex-col gap-1.5 bg-slate-50">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="chip chip-neutral shrink-0">
+                STANDBY
+              </span>
+              <ShieldAlert size={16} className="text-slate-400 shrink-0" />
+              <span className="font-head font-bold text-[14.5px] leading-snug text-slate-500">No Active Incident Detected</span>
+            </div>
+            <div className="text-[12px] text-[var(--hci-text-3)]">
+              Investigation console is on standby. Use the <strong className="text-[var(--hci-brand)]">Ingest Events</strong> page to simulate an attack or upload telemetry.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="panel overflow-hidden">
       <div className="flex items-stretch">
@@ -44,18 +86,18 @@ const IncidentBanner = ({ incident }) => {
               ACTIVE
             </span>
             <ShieldAlert size={16} className="text-[var(--hci-critical)] shrink-0" />
-            <span className="font-head font-bold text-[14.5px] leading-snug">{data.title}</span>
-            <span className="chip chip-neutral font-mono shrink-0">{data.hypothesis_id}</span>
+            <span className="font-head font-bold text-[14.5px] leading-snug">{incident.title}</span>
+            <span className="chip chip-neutral font-mono shrink-0">{incident.hypothesis_id}</span>
           </div>
           <div className="text-[12px] text-[var(--hci-text-2)]">
-            Target: <span className="font-mono text-[var(--hci-text)]">{data.target}</span>
-            {" · "}Detected {data.detection_ts}
-            {" · "}confidence <span className="font-mono">{((data.confidence || 0.94) * 100).toFixed(1)}%</span>
+            Target: <span className="font-mono text-[var(--hci-text)]">{incident.target}</span>
+            {" · "}Detected {formatDateTimeIST(incident.detection_ts)}
+            {" · "}confidence <span className="font-mono">{((incident.confidence || 0) * 100).toFixed(1)}%</span>
           </div>
         </div>
         {/* MITRE chain — wraps on small screens */}
         <div className="hidden lg:flex items-center gap-1.5 flex-wrap px-4 py-3.5 shrink-0 max-w-[260px]">
-          {(data.mitre_chain || []).map((m) => (
+          {(incident.mitre_chain || []).map((m) => (
             <span key={m} className="chip chip-neutral font-mono">{m}</span>
           ))}
         </div>
@@ -67,18 +109,31 @@ const IncidentBanner = ({ incident }) => {
 const IncidentPage = () => {
   const { selectedEventIdx, setSelectedEventIdx } = useApp();
   const { data } = useTimeline();
-  const incident = data?.incident || INCIDENT;
+  const incident = data?.incident;
+  const events   = data?.timeline_events ?? [];
+
+  // Derive stats from live timeline events
+  const containEvt   = events.find((e) => e.type === "CONTAIN");
+  const containTime  = containEvt ? `T+${containEvt.t}s` : "—";
+
+  const assetsHit    = (incident?.affected_assets ?? []).length;
+  const crownJewels  = (incident?.affected_assets ?? []).filter((a) => a.criticality === "CROWN_JEWEL").length;
+  const assetSub     = assetsHit > 0 ? (crownJewels > 0 ? `${crownJewels} crown jewel` : `${assetsHit} total`) : "0 total";
+
+  const predictEdges = events.filter((e) => e.type === "HYPOTHESIS").length;
+  const deadlineHrs  = incident?.cert_in_deadline_hours ?? 0;
+  const certWindow   = deadlineHrs > 0 ? `${String(deadlineHrs - 1).padStart(2,"0")}:59:17` : "—";
 
   return (
     <div className="space-y-4">
       <IncidentBanner incident={incident} />
 
-      {/* 4-column stats — each gets equal width, text wraps instead of overflowing */}
+      {/* 4-column stats — computed from live data */}
       <div className="grid grid-cols-4 gap-3">
-        <Stat icon={Activity}   label="Contain Time"      value="T+43s"      sub="from T-0"                  tone="clean"    />
-        <Stat icon={Target}     label="Assets Hit"        value="3"          sub="1 crown jewel"             tone="critical" />
-        <Stat icon={GitBranch}  label="Next Hops"         value="2"          sub="auth-svc → db-audit"       tone="warn"     />
-        <Stat icon={Clock}      label="CERT-In Window"    value="05:59:17"   sub="6h regulatory deadline"    tone="warn"     />
+        <Stat icon={Activity}  label="Contain Time"   value={containTime}                   sub="from T-0"                    tone="clean"    />
+        <Stat icon={Target}    label="Assets Hit"     value={assetsHit > 0 ? String(assetsHit) : "0"}             sub={assetSub}                    tone="critical" />
+        <Stat icon={GitBranch} label="Hypotheses"     value={predictEdges > 0 ? String(predictEdges) : "0"}     sub="reasoning chains"            tone="warn"     />
+        <Stat icon={Clock}     label="CERT-In Window" value={certWindow}                    sub={deadlineHrs > 0 ? `${deadlineHrs}h deadline` : "no active incident"}  tone="warn"     />
       </div>
 
       <Timeline selectedIdx={selectedEventIdx} onSelect={setSelectedEventIdx} />

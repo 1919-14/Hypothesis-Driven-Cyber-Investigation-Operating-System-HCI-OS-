@@ -67,6 +67,17 @@ _TRUST_TABLE: Dict[str, float] = {
     "internal": 0.70,
     # Partner / third-party feeds
     "partner":  0.50,
+    # ── UI Manual Injection (SOC analyst test events, hackathon demo) ──────────
+    # Normalized variants: "ui-manual" → "uimanual", "ui_template" → "uitemplate", etc.
+    "uimanual":   0.85,
+    "uitemplate": 0.85,
+    "uiupload":   0.85,
+    "manual":     0.85,
+    "template":   0.85,
+    "upload":     0.85,
+    "demo":       0.80,
+    "test":       0.80,
+    "simulation": 0.80,
 }
 
 _TRUST_UNKNOWN = 0.00  # unknown → quarantine
@@ -322,12 +333,18 @@ def get_trust_score(source: str) -> float:
 
 # ── Main Entry Point ──────────────────────────────────────────────────────────
 
-def process(raw_data: Dict[str, Any]) -> Dict[str, Any]:
+def process(
+    raw_data: Dict[str, Any],
+    asset_id: Optional[str] = None,
+    source: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     A1 main pipeline function.
 
     Args:
         raw_data: Incoming telemetry event dict (any shape).
+        asset_id: Optional target asset ID override.
+        source: Optional source system override.
 
     Returns:
         If source is trusted (score > 0.00):
@@ -342,13 +359,20 @@ def process(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error("A1: process() received non-dict input (%s) — rejecting", type(raw_data))
         raw_data = {}
 
+    # Copy raw_data to avoid mutating input dictionary
+    raw_data = dict(raw_data)
+    if asset_id and "asset_id" not in raw_data:
+        raw_data["asset_id"] = asset_id
+    if source and "source" not in raw_data:
+        raw_data["source"] = source
+
     evidence_id = f"A1-{uuid.uuid4().hex[:8].upper()}"
 
     # ── Step 1: Extract source (Gap #2) ──────────────────────────────────────
-    source = _extract_source(raw_data)
+    extracted_source = _extract_source(raw_data)
 
     # ── Step 2: Trust score ───────────────────────────────────────────────────
-    trust_score = _get_trust_score(source)
+    trust_score = _get_trust_score(extracted_source)
 
     # ── Step 3: Sanitize ALL string fields (SD-0, Gaps #1 #5) ───────────────
     sanitized_raw, sanitization_events = sanitize(raw_data, evidence_id=evidence_id)
@@ -360,7 +384,7 @@ def process(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     if trust_score == _TRUST_UNKNOWN:
         record = QuarantineRecord(
             quarantine_id=str(uuid.uuid4()),
-            source=source,
+            source=extracted_source,
             reason=f"Unknown source with trust_score {_TRUST_UNKNOWN:.2f}",
             timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             raw_data=sanitized_raw,  # store sanitized copy, not raw (safety)
@@ -373,7 +397,7 @@ def process(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         output = IngestOutput(
             sanitized_raw=sanitized_raw,
             trust_score=trust_score,
-            source=source,
+            source=extracted_source,
             ot_context=OTContext(protocol=ot_protocol),
             quarantined=False,
             sanitization_events=sanitization_events,
@@ -382,7 +406,7 @@ def process(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error("A1: output validation failed (%s) — quarantining defensively", exc)
         record = QuarantineRecord(
             quarantine_id=str(uuid.uuid4()),
-            source=source,
+            source=extracted_source,
             reason=f"Output validation error: {exc}",
             timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             raw_data=sanitized_raw,
@@ -393,7 +417,7 @@ def process(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(
         "A1: [%s] source='%s' trust=%.2f ot_protocol=%s events=%d",
         evidence_id,
-        source,
+        extracted_source,
         trust_score,
         ot_protocol,
         len(sanitization_events),

@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import json
 import logging
+import math
+import random
 import time
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -26,6 +28,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import networkx as nx
+
+
+def _softmax_sample(candidates: List[str], scores: List[float], temperature: float = 0.25) -> str:
+    """Sample one candidate using softmax-weighted probability (non-deterministic)."""
+    exp_scores = [math.exp(s / temperature) for s in scores]
+    total = sum(exp_scores)
+    probs = [e / total for e in exp_scores]
+    return random.choices(candidates, weights=probs, k=1)[0]
 
 logger = logging.getLogger("A14_DigitalTwin")
 logging.basicConfig(level=logging.INFO)
@@ -170,21 +180,27 @@ class DigitalTwin:
         current = start_node
         visited = {start_node}
 
-        # Follow highest-weight edges
+        # ── Probabilistic traversal — non-deterministic per run ─────────────
         while current != target_node and len(path) < max_hops:
             neighbors = list(self.graph.successors(current))
-            # Filter out already-visited nodes to prevent cycles
             unvisited = [n for n in neighbors if n not in visited]
             if not unvisited:
-                # Try all neighbors if we've visited them all
                 if not neighbors:
                     break
                 unvisited = neighbors
 
-            next_node = max(
-                unvisited,
-                key=lambda n: self.graph[current][n].get("weight", 0),
-            )
+            # Prefer candidates that still have a path to the target
+            reachable = [n for n in unvisited if nx.has_path(self.graph, n, target_node)]
+            candidates = reachable if reachable else unvisited
+
+            # Score: edge weight + criticality (slight random jitter for variety)
+            scores = [
+                self.graph[current][n].get("weight", 0.5)
+                + self.graph.nodes[n].get("criticality", 0.5) * 0.3
+                + random.uniform(0, 0.05)
+                for n in candidates
+            ]
+            next_node = _softmax_sample(candidates, scores)
             path.append(next_node)
             visited.add(next_node)
             current = next_node
@@ -468,13 +484,19 @@ class DigitalTwin:
             if not neighbors:
                 break
 
-            def _gnn_score(n: str) -> float:
-                edge_w  = self.graph[current][n].get("weight", 0.5)
-                fs      = fused_scores.get(n, 0.0)
-                crit    = self.graph.nodes[n].get("criticality", 0.5)
-                return 0.4 * edge_w + 0.4 * fs + 0.2 * crit
+            # Prefer reachable nodes; fall back to all neighbors
+            reachable = [n for n in neighbors if nx.has_path(self.graph, n, target_node)]
+            candidates = reachable if reachable else neighbors
 
-            next_node = max(neighbors, key=_gnn_score)
+            # Blend edge weight + GNN score + criticality, sample probabilistically
+            scores = [
+                0.4 * self.graph[current][n].get("weight", 0.5)
+                + 0.4 * fused_scores.get(n, 0.0)
+                + 0.2 * self.graph.nodes[n].get("criticality", 0.5)
+                + random.uniform(0, 0.04)
+                for n in candidates
+            ]
+            next_node = _softmax_sample(candidates, scores)
             path.append(next_node)
             visited.add(next_node)
             current = next_node

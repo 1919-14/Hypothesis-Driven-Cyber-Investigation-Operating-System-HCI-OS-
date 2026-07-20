@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { GRAPH } from "@/mock/data";
 
 /**
  * Fetches GNN ensemble visualization from the backend (GAT + TGN + GraphSAGE).
@@ -14,22 +13,21 @@ export const useGnn = () => {
       const res = await fetch("/api/gnn/visualization");
       if (!res.ok) throw new Error(`GNN viz fetch failed: ${res.status}`);
       const data = await res.json();
-      // The backend returns { cytoscape: { nodes, edges }, tgn_timeline, sage_pca }
-      // but we also accept the raw cytoscape format from DigitalTwin
       const cyto = data.cytoscape ?? data;
       return {
-        graph:        cyto,               // { nodes: [], edges: [] } — Cytoscape-compatible
+        graph:        cyto,
         tgn_timeline: data.tgn_timeline ?? [],
         sage_pca:     data.sage_pca ?? [],
         perf:         data.perf ?? {},
       };
     },
     refetchInterval: 10_000,
+    retry: 1,
     placeholderData: {
-      graph:        GRAPH,
+      graph: { nodes: [], edges: [] },
       tgn_timeline: [],
-      sage_pca:     [],
-      perf:         {},
+      sage_pca: [],
+      perf: {},
     },
   });
 };

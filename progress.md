@@ -990,3 +990,81 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 **Files created/modified:**
 
 - `docs/qa_playbook.md` — ✅ New (Judge Q&A Playbook)
+
+---
+
+## [2026-07-19 23:45] — BUILD — Universal Ingestion, Full-Stack Integration & Standby Views (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- **Full-Stack Integration (FastAPI + React):** Removed all hardcoded mock data, forcing the UI to represent the actual live backend database state.
+- **Universal Event Ingestion:** Built an ingestion page with a file converter layer to parse incoming CSV/JSON logs directly into normalized events.
+- **Clean Standby State:** Configured dashboard, timelines, and decision tables to show standby/idle views when no incidents are active, preventing UI clutter.
+- **UI Responsiveness & Alerts:** Integrated dynamic visual warnings including a blinking alert banner when autonomy is frozen (SD-8 activated) and real-time count badges on the Sidebar's Human Gate link.
+- **AI Decision Explanations:** Created an AI explanation service (`GET /decisions/{id}/explain`) generating root causes, code actions, and paging on-call SOC teams (PagerDuty integration) when human input is requested.
+
+**Files created/modified:**
+
+- `hci_os/app.py` — ⚠️ Modified (CORS, bulk endpoints, telemetry and code/explain services)
+- `hci_os/ET_UI/src/pages/IngestPage.jsx` — ✅ Modified (file converter & universal ingestion upload)
+- `hci_os/ET_UI/src/components/layout/Sidebar.jsx` — ✅ Modified (linked Human Gate badge to live query)
+- `hci_os/ET_UI/src/App.jsx` & `hci_os/ET_UI/src/context/AppContext.jsx` — ✅ Modified (role redirection and freeze banners)
+
+---
+
+## [2026-07-20 22:45] — BUILD & OPTIMIZE — Topology Dashboard Stabilization & Dynamic LoD Graph Rendering (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- **Unified Graph Source:** Connected both the primary **Topology Dashboard** and the **Digital Twin simulation** to target the same `/api/gnn/visualization` endpoint. This resolves data drift between security analysis and simulated sandboxes.
+- **Performance Scaling (2,000+ Nodes):**
+  - **Backend:** Increased node/edge bounds to 2,000 and 8,000 respectively to render complete topologies.
+  - **Frontend:** Integrated Cytoscape.js optimization flags (`hideEdgesOnViewport: true`, `pixelRatio: 1`).
+- **Dynamic Level-of-Detail (LoD) Rendering:**
+  - Designed a progressive graph loading engine to address canvas flattening and slow UI start speeds.
+  - On mount, Cytoscape renders and centers **only the top 15 highest-priority nodes** (critical target assets + compromised paths).
+  - Listening to mouse-wheel scrolls and zooms, it progressively loads the background `Technique`, `Software`, and `Mitigation` nodes in stages (`zoom <= 1.0` -> +50 nodes, `zoom <= 0.75` -> +200 nodes, `zoom <= 0.40` -> load all remaining nodes).
+  - Injects new nodes smoothly using localized `cose` force-directed layouts, preserving original coordinates and maintaining a clean viewport.
+- **On-Demand AI CERT-In Narratives:** Implemented an on-demand AI explanation button on the CERT-In Report view calling Groq, preventing expensive API overhead on auto-generation.
+
+**Files created/modified:**
+
+- `hci_os/ET_UI/src/components/topology/AttackGraph.jsx` — ✅ Modified (progressive LoD rendering, cose layout)
+- `hci_os/ET_UI/src/components/twin/DigitalTwin.jsx` — ✅ Modified (progressive LoD rendering, twin controls alignment)
+- `hci_os/ET_UI/src/api/useDigitalTwin.js` — ✅ Modified (redirected graph endpoint)
+- `hci_os/app.py` — ⚠️ Modified (higher limits, on-demand AI CERT-In narratives, decision helper)
+
+---
+
+## [2026-07-20 22:50] — DOCS — Transparency, Traceability, and Explainability Architecture (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- **Documented Ingestion & Sanitization Traceability:**
+  - Telemetry from raw logs (CICIDS-2017, SCADA, Windows Event Logs, Netflow) is traced from the moment it hits the platform.
+  - Every event triggers SD-0 Sanitization (scanning for 7 regex patterns such as JNDI, SQLi, and XSS). If blocked, it logs a sanitization event and directs the malformed record to `data/quarantine.jsonl` with an automated UUID.
+  - SD-1 scores trust based on origin (CERT-In = 0.95, Internal = 0.70, etc.). All of this metadata is attached directly to the Evidence object, making it auditable at any later step.
+- **Wired Pipeline Trace Explainability (Live Code Inspection):**
+  - Integrated the **Pipeline Explainability Trace Modal** into the Ingestion screen. This lets the security analyst see exactly how a log parsed through the 13-agent brain.
+  - For any given log processing run, the modal displays the inputs, outputs, runtime latency, and self-defense actions of each agent (A1–A12).
+  - Crucially, the modal fetches the actual live Python source code of the agent directly from the backend (`GET /agent/code/{agent_id}`). This enables total transparency, allowing analysts to audit the exact algorithms (like Welford's online variance calculation in A4 or BFS blast radius calculation in A7) and rule files running live.
+- **Architected Human-in-the-Loop Gatekeepers:**
+  - Documented the strict validation protocol where autonomous mitigation actions (like server restarts or port blockages) are held in a `PENDING` state if safety-critical indicators or `can_reboot=False` is flagged.
+  - Implemented a trust-weighted reviewer consensus algorithm. High-impact operations must achieve a consensus score >= 0.70 (e.g., CISO = 0.90, Senior Analyst = 0.90, Junior = 0.30) before execution.
+  - Integrated full cryptographic audit chaining (SHA-256 links between consecutive decisions stored in `audit_log.jsonl`) to ensure tamper-evidence.
+- **Real Backend Graph Traceability (Neo4j Integration):**
+  - Replaced simulated/mock topologies with a real-world, persistent GNN/KG backend database.
+  - The graph uses a consistent Cypher-based retrieval model directly from Neo4j (`neo4j_store.py` with UNWIND transaction batching), loading 5,026 nodes and 565,752 edges.
+  - Shows how the GNN Ensemble (GAT + GraphSAGE + TGN) attention weights map to paths on the frontend, ensuring every predicted step is backed by real relational knowledge and temporal patterns rather than hallucinated AI jumps.
+
+**Files created/modified:**
+
+- `progress.md` — ⚠️ Modified (Appended transparency and traceability log entry)
+
+
