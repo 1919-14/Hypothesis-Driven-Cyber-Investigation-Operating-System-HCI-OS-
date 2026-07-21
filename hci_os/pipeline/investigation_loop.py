@@ -347,8 +347,10 @@ def run_investigation(
                 "action_taken": decision.action_taken,
                 "risk_score":   decision.risk_score,
             }
+            is_pending = "PENDING" in decision.action_taken
+            status_text = "awaiting Human Gate" if is_pending else "executed autonomously"
             _trace("A7", "pass",
-                   f"SOAR planned action: '{decision.action_taken}' · risk={decision.risk_score:.2f} · awaiting Human Gate",
+                   f"SOAR planned action: '{decision.action_taken}' · risk={decision.risk_score:.2f} · {status_text}",
                    {"decision_id": decision.decision_id, "action": decision.action_taken,
                     "risk_score": decision.risk_score, "blast_radius": getattr(decision, "blast_radius_score", None)})
         else:

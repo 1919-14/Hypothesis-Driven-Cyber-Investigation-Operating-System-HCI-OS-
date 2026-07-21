@@ -202,27 +202,33 @@ const RunRow = ({ run, onOverride }) => {
   const [open, setOpen] = useState(false);
   const hasDecision = !!run.decision_id;
 
-  const isQuarantined = run.quarantined || (run.decision && (
+  const isPendingGate = !!run.decision && run.decision.action_taken?.toUpperCase().includes("PENDING");
+
+  const isQuarantined = (run.quarantined || (run.decision && (
     run.decision.action_taken?.toUpperCase().includes("ISOLATE") ||
     run.decision.action_taken?.toUpperCase().includes("QUARANTINE")
-  ));
+  ))) && !isPendingGate;
 
   const isFlagged = run.flagged || !!run.decision_id || (run.decision && (
     run.decision.action_taken?.toUpperCase() !== "MONITOR" &&
     run.decision.action_taken?.toUpperCase() !== "NONE"
   ));
 
-  const passed = !isQuarantined && !isFlagged;
+  const passed = !isQuarantined && !isFlagged && !isPendingGate;
   const agentCount = run.pipeline_trace?.length || 0;
 
   const statusLabel = isQuarantined
     ? "QUARANTINED"
+    : isPendingGate
+    ? "PENDING GATE"
     : isFlagged
     ? "FLAGGED"
     : "CLEAN";
 
   const statusClass = isQuarantined
     ? "chip chip-danger"
+    : isPendingGate
+    ? "chip chip-warning"
     : isFlagged
     ? "chip chip-warning"
     : "chip chip-clean";
@@ -272,40 +278,40 @@ const RunRow = ({ run, onOverride }) => {
                 <Activity size={11} className="text-[var(--hci-brand)]" />
                 Agent-by-Agent Pipeline Trace
               </div>
-              <div className="relative pl-4 space-y-2">
+              <div className="relative pl-6 space-y-4">
                 {/* Timeline line */}
-                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[var(--hci-border)]" />
+                <div className="absolute left-[11px] top-2 bottom-2 w-px bg-[var(--hci-border)]" />
 
                 {run.pipeline_trace.map((step, idx) => {
                   const meta = AGENT_META[step.agent] || {
                     label: step.agent, color: "text-slate-400", bg: "bg-slate-500/10"
                   };
                   return (
-                    <div key={idx} className="flex items-start gap-3 relative">
+                    <div key={idx} className="flex items-start gap-4 relative">
                       {/* dot */}
-                      <div className={`absolute left-[-13px] top-1 w-3 h-3 rounded-full border border-[var(--hci-border)] flex items-center justify-center ${meta.bg}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${step.status === "pass" ? "bg-emerald-400" : step.status === "block" ? "bg-red-500" : step.status === "flag" ? "bg-amber-400" : "bg-slate-500"}`} />
+                      <div className={`absolute left-[-19px] top-1.5 w-4 h-4 rounded-full border border-[var(--hci-border)] flex items-center justify-center ${meta.bg}`}>
+                        <div className={`w-2 h-2 rounded-full ${step.status === "pass" ? "bg-emerald-400" : step.status === "block" ? "bg-red-500" : step.status === "flag" ? "bg-amber-400" : "bg-slate-500"}`} />
                       </div>
 
-                      <div className={`ml-1 rounded-lg border border-[var(--hci-border)] p-2 flex-1 ${meta.bg}`}>
-                        <div className="flex items-center gap-2 mb-0.5">
+                      <div className={`ml-2 rounded-xl border border-[var(--hci-border)] p-3.5 flex-1 ${meta.bg} shadow-sm`}>
+                        <div className="flex items-center gap-2 mb-1">
                           {STATUS_ICON[step.status] || STATUS_ICON.skip}
-                          <span className={`font-bold text-[11.5px] ${meta.color}`}>{meta.label}</span>
-                          <span className={`text-[10.5px] font-semibold ml-auto ${STATUS_COLOR[step.status]}`}>
+                          <span className={`font-bold text-[12.5px] ${meta.color}`}>{meta.label}</span>
+                          <span className={`text-[10.5px] font-bold ml-auto ${STATUS_COLOR[step.status]} chip ${step.status === "pass" ? "chip-clean" : step.status === "block" ? "chip-critical" : "chip-warning"}`}>
                             {step.status.toUpperCase()}
                           </span>
                         </div>
-                        <div className="text-[11px] text-[var(--hci-text-3)] leading-relaxed">
+                        <div className="text-[12px] text-[var(--hci-text-2)] leading-relaxed mt-1">
                           {step.summary}
                         </div>
                         {/* Detail fields */}
                         {step.detail && Object.keys(step.detail).length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-2">
+                          <div className="mt-2.5 flex flex-wrap gap-2 border-t border-[var(--hci-border)]/50 pt-2">
                             {Object.entries(step.detail)
                               .filter(([, v]) => v !== null && v !== undefined)
                               .map(([k, v]) => (
-                                <span key={k} className="font-mono text-[10px] text-[var(--hci-text-3)]">
-                                  {k}=<span className="text-[var(--hci-text)]">
+                                <span key={k} className="font-mono text-[11px] text-[var(--hci-text-3)] bg-[var(--hci-surface-2)] px-2 py-0.5 rounded border border-[var(--hci-border)]">
+                                  {k}=<span className="text-[var(--hci-text)] font-semibold">
                                     {typeof v === "number" ? v.toFixed(3) : String(v)}
                                   </span>
                                 </span>

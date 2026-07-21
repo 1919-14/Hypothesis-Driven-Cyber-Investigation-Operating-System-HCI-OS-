@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { TID } from "@/constants/testIds";
 import {
   FileText, Download, RefreshCw, ShieldAlert, CheckCircle2,
-  Loader, Printer, Sparkles, ChevronDown, ChevronUp,
+  Loader, Printer, Sparkles, ChevronDown, ChevronUp, Clock,
 } from "lucide-react";
 import { useCertIn } from "@/api/useCertIn";
+import { usePipelineHistory } from "@/api/usePipelineHistory";
 
 const pad = (n) => n.toString().padStart(2, "0");
 
@@ -36,8 +37,22 @@ const NarrativeSection = ({ title, content, color = "text-[var(--hci-brand)]" })
   </div>
 );
 
+const formatTimeIST = (isoString) => {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    return d.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
+    }) + " IST";
+  } catch (e) { return isoString; }
+};
+
 const CertInReport = () => {
-  const { data, refetch, isLoading } = useCertIn("latest");
+  const [selectedId, setSelectedId] = useState("latest");
+  const { data, refetch, isLoading } = useCertIn(selectedId);
+  const { data: historyData, isLoading: historyLoading } = usePipelineHistory(50);
   const incident       = data?.incident;
   const timelineEvents = data?.timeline_events ?? [];
   const auditExcerpt   = data?.audit_excerpt   ?? [];
@@ -48,11 +63,17 @@ const CertInReport = () => {
   const [aiLoading, setAiLoading]     = useState(false);
   const [showNarrative, setShowNarrative] = useState(true);
 
+  // Reset AI report when switching incidents
+  useEffect(() => {
+    setAiReport(null);
+  }, [selectedId]);
+
   const generateAIReport = async () => {
     if (!incident) return;
     setAiLoading(true);
     try {
-      const res = await fetch(`/api/cert-in/generate/${incident.hypothesis_id ?? "latest"}`, {
+      const targetId = selectedId === "latest" ? (incident.hypothesis_id ?? "latest") : selectedId;
+      const res = await fetch(`/api/cert-in/generate/${targetId}`, {
         method: "POST",
       });
       if (res.ok) {
@@ -70,12 +91,13 @@ const CertInReport = () => {
   const downloadMarkdown = async () => {
     if (!incident) return;
     try {
-      const res = await fetch(`/api/cert-in/report/${incident.hypothesis_id ?? "latest"}?format=md`);
+      const targetId = selectedId === "latest" ? (incident.hypothesis_id ?? "latest") : selectedId;
+      const res = await fetch(`/api/cert-in/report/${targetId}?format=md`);
       const text = await res.text();
       const blob = new Blob([text], { type: "text/markdown" });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
-      a.href = url; a.download = `CERT-IN_${incident.hypothesis_id ?? "report"}.md`;
+      a.href = url; a.download = `CERT-IN_${targetId}.md`;
       document.body.appendChild(a); a.click();
       document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch { /* silent */ }
@@ -135,8 +157,54 @@ const CertInReport = () => {
       </div>
 
       <div className="p-6 grid grid-cols-12 gap-6">
-        {/* Left: Main report */}
-        <div className="col-span-8">
+        {/* Left Sidebar: Incident History */}
+        <div className="col-span-3 border-r border-[var(--hci-border)] pr-4 space-y-3 no-print">
+          <div className="label-caps mb-1 flex items-center gap-1.5 text-[var(--hci-brand)]">
+            <Clock size={12} />
+            Incident History
+          </div>
+          <div className="space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
+            {historyLoading ? (
+              <div className="text-[12px] text-[var(--hci-text-3)] p-4 text-center">
+                <Loader size={12} className="animate-spin inline mr-1" /> Loading history…
+              </div>
+            ) : !historyData || historyData.length === 0 ? (
+              <div className="text-[12px] text-[var(--hci-text-3)] p-4 text-center">
+                No history recorded
+              </div>
+            ) : (
+              historyData.map((run) => {
+                const isSelected = selectedId === run.hypothesis_id || (selectedId === "latest" && run.hypothesis_id === incident?.hypothesis_id);
+                return (
+                  <button
+                    key={run.run_id || run.hypothesis_id}
+                    onClick={() => setSelectedId(run.hypothesis_id)}
+                    className={`w-full text-left p-2.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                      isSelected
+                        ? "bg-blue-500/10 border-[var(--hci-brand)] text-[var(--hci-text)]"
+                        : "bg-[var(--hci-surface)] border-[var(--hci-border)] hover:border-slate-400 text-[var(--hci-text-2)]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full justify-between">
+                      <span className="font-mono text-[11px] font-bold">{run.hypothesis_id}</span>
+                      <span className={`chip !py-0 !text-[9px] ${run.flagged ? "chip-warning" : "chip-clean"}`}>
+                        {run.flagged ? "FLAGGED" : "CLEAN"}
+                      </span>
+                    </div>
+                    <div className="text-[12px] font-semibold truncate w-full">{run.asset_id || "Unknown Asset"}</div>
+                    <div className="text-[10px] text-[var(--hci-text-3)] font-mono flex justify-between w-full">
+                      <span>risk {run.anomaly_score?.toFixed(2) ?? "0.00"}</span>
+                      <span>{formatTimeIST(run.created_at)}</span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Middle: Main report */}
+        <div className="col-span-6 print:col-span-12">
           <div className="flex items-center gap-2 mb-3">
             <ShieldAlert size={18} className="text-[var(--hci-critical)]" />
             <div className="font-head font-bold text-[18px]">
@@ -222,7 +290,7 @@ const CertInReport = () => {
         </div>
 
         {/* Right: Sidebar */}
-        <div className="col-span-4 space-y-4">
+        <div className="col-span-3 print:col-span-12 space-y-4">
           <div className="panel-raised p-4">
             <div className="label-caps mb-2">6-Hour SLA Countdown</div>
             <div className="font-mono text-[24px] font-bold text-[var(--hci-critical)]">{countdown}</div>

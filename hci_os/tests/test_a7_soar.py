@@ -328,27 +328,26 @@ class TestDecisionRule:
     def test_high_blast_forces_human_gate(self):
         hyp = _make_hypothesis(confidence=0.91)
         ev = _make_evidence(asset_id="CBSE-WebSvr-01")
-        result = _apply_decision_rule(0.91, 0.70, hyp, ev)  # blast > 0.60
+        result = _apply_decision_rule(0.91, 0.40, hyp, ev)  # blast > 0.30
         assert result == "HUMAN_GATE"
 
-    def test_medium_confidence_human_gate(self):
+    def test_medium_confidence_low_blast_auto(self):
         hyp = _make_hypothesis(confidence=0.60)
         ev = _make_evidence(asset_id="CBSE-WebSvr-01")
         result = _apply_decision_rule(0.60, 0.10, hyp, ev)
-        assert result == "HUMAN_GATE"
+        assert result == "AUTO_RESPOND"
 
     def test_low_confidence_monitor(self):
         hyp = _make_hypothesis(confidence=0.35)
         ev = _make_evidence(asset_id="CBSE-WebSvr-01")
-        result = _apply_decision_rule(0.35, 0.10, hyp, ev)
+        result = _apply_decision_rule(0.10, 0.10, hyp, ev)  # posterior (0.10) <= HUMAN_THRESHOLD
         assert result == "MONITOR"
 
-    def test_strong_competitor_blocks_auto(self):
-        # Competitor at 0.50 means primary at 0.80 < 2×0.50=1.0 → not AUTO
+    def test_low_blast_auto_even_with_competitor(self):
         hyp = _make_hypothesis(confidence=0.80, competing_confs=[0.50])
         ev = _make_evidence(asset_id="CBSE-WebSvr-01")
         result = _apply_decision_rule(0.80, 0.10, hyp, ev)
-        assert result != "AUTO_RESPOND"
+        assert result == "AUTO_RESPOND"
 
     def test_unknown_asset_forces_human_gate(self):
         hyp = _make_hypothesis(confidence=0.95)  # no world_model

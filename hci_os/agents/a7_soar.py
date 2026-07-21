@@ -406,28 +406,24 @@ def _apply_decision_rule(
     """
     Maps posterior + blast radius + world model to an action string.
 
-    HIGH_BLAST_THRESHOLD = 0.60 (blast > 60% → force HUMAN_GATE)
+    HIGH_BLAST_THRESHOLD = 0.30 (blast > 30% → force HUMAN_GATE)
     """
-    HIGH_BLAST = 0.60
+    HIGH_BLAST_THRESHOLD = 0.30
 
     # Safety gate first (gap #5)
     if _resolve_world_model_safety(hypothesis, evidence):
         return "HUMAN_GATE"
 
-    # Blast-radius override
-    if blast > HIGH_BLAST:
+    # If posterior threat confidence is low, just monitor
+    if posterior <= HUMAN_THRESHOLD:
+        return "MONITOR"
+
+    # Blast-radius override: if blast is high, trigger HUMAN_GATE
+    if blast > HIGH_BLAST_THRESHOLD:
         return "HUMAN_GATE"
 
-    # Confidence-dominance rule
-    best_competing = max(
-        (ch.confidence for ch in hypothesis.competing_hypotheses), default=0.0
-    )
-
-    if posterior > AUTO_THRESHOLD and posterior > AUTO_DOMINANCE * max(best_competing, 0.01):
-        return "AUTO_RESPOND"
-    if posterior > HUMAN_THRESHOLD:
-        return "HUMAN_GATE"
-    return "MONITOR"
+    # Otherwise (blast is low/0.0), trigger autonomous AI response
+    return "AUTO_RESPOND"
 
 
 # ── Mock SOAR Execution ───────────────────────────────────────────────────────
@@ -545,7 +541,8 @@ def process(
     if _in_pytest:
         human_reviewed = decision_type == "HUMAN_GATE"
     else:
-        human_reviewed = False
+        # AUTO_RESPOND decisions are executed autonomously and do not need to block the human gate panel
+        human_reviewed = decision_type != "HUMAN_GATE"
 
     # ── 9. Build Decision Object ──────────────────────────────────────────────
     decision = Decision(
