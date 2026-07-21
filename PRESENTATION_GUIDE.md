@@ -49,48 +49,42 @@
 
 ### 13-Agent Pipeline & Data Store Framework
 
-```
-Raw Logs (IT/OT/Web)
-       │
-       ▼
-┌──────────────────┐
-│  A1 Ingest & SD  │ ◄── [SD-0/1 Sanitization & Trust Check]
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  A2 Normalizer   │ ◄── [Appends OT & Indian context multipliers]
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ A3 Router Agent  │ ◄── [Path 1: Redis Cache | Path 2: FAISS Fuzzy]
-└────────┬─────────┘
-         │ (Path 3 Novel)
-         ▼
-┌──────────────────┐
-│  A4 Anomaly Det. │ ◄── [Isolation Forest + Welford online Z-score]
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  A5 GNN Ensemble │ ◄── [PyTorch GAT + GraphSAGE + TGN Fusion]
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ A6 Attribution   │ ◄── [FAISS RAG: MITRE, NVD CVE, CERT-In advisories]
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  A7 SOAR Agent   │ ◄── [Risk score, BFS Blast Radius, Bayesian Update]
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ A12 Audit Agent  │ ◄── [Tamper-evident SHA-256 Decision Chain]
-└──────────────────┘
+```mermaid
+graph TD
+    A[Raw Telemetry Log] --> B[A1 Ingestion & Trust Gate]
+    B -->|Sanitized & Trusted| C[A2 Normalizer & Context]
+    C -->|Fingerprint & Attributes| D[A3 Fingerprint Router]
+    
+    D -->|Path 1: SHA-256 Hit| E[Redis Decision Cache <0.1ms]
+    D -->|Path 2: FAISS Sim >=0.85| F[FAISS Vector Memory ~16ms]
+    D -->|Path 3: Miss / Novel| G[A4 Anomaly Detector]
+    
+    E --> J[A7 SOAR & Competing Hypotheses]
+    F --> J
+    
+    G -->|Anomaly Score & Vector| H[A5 GNN Correlator Ensemble]
+    H -->|Graph Attention Path| I[A6 Attribution & RAG]
+    
+    H1[A10 Active Hunt VT/Shodan] -.->|Enrichment if Score > 0.7| I
+    
+    I -->|TTPs & Threat Actor| J
+    J --> K[A8 Critic Challenge Loop]
+    K -->|Validated Hypothesis| L[A9 Quarantine Sandbox]
+    
+    L -->|Risk & Blast Radius Check| M{A7 Decision Engine}
+    
+    M -->|Low Risk: Blast Radius <= 0.3| N[AUTO_RESPOND: Direct Execution]
+    M -->|High Risk: Blast Radius > 0.3 OR Safety Asset| O[HUMAN_GATE: Analyst Consensus]
+    
+    O -->|Approved| N
+    
+    N --> P[Isolate Asset / SOAR Playbook]
+    N --> Q[A12 Cryptographic Audit Chain]
+    N -->|Confirmed Malicious IOCs| R[A13 Federation STIX Sharing]
+    
+    subgraph Governance & Resilience
+        S[A11 Behavioral Watchdog] -.->|SD-6 Schema & Rate Monitoring| B & G & H & I & J & N
+    end
 ```
 
 ---
@@ -286,3 +280,4 @@ A: It uses a custom React hook that calculates the difference between `detection
 ---
 
 *This guide contains everything required to build a winning deck for the ET AI Hackathon 2026.*
+
