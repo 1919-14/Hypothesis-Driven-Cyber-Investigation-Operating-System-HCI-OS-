@@ -143,45 +143,20 @@ Our GNN model ensemble is evaluated on a held-out test split (754 nodes, 3 attac
 
 ---
 
-## 📸 Platform Screenshots & Demo Gallery
+## Demo ScreenShots
 
-### 🖼️ UI Dashboard Views
-
-#### 1. Incident Overview & Real-Time Timeline
-![Incident Overview & Real-Time Timeline](https://github.com/user-attachments/assets/ff12ddd0-a772-4be3-9a46-b792b31ca5ad)
-
-#### 2. Attack Topology Graph & GNN Propagation Path
-![Attack Topology Graph & GNN Propagation Path](https://github.com/user-attachments/assets/8466488e-a891-4bf9-a6f3-30f39270327d)
-
-#### 3. Human-in-the-Loop Gatekeeper Panel
-![Human Gatekeeper Approval Panel](https://github.com/user-attachments/assets/dca442d2-af0a-487f-a7c1-d8d65cba2326)
-
-#### 4. Universal Telemetry Log Ingestion
-![Universal Telemetry Ingestion](https://github.com/user-attachments/assets/74497d69-3c69-4e96-97a5-5e70eba79c74)
-
-#### 5. Live Agent Code Execution Trace
-![Live Pipeline Trace & Agent Source Code Inspection](https://github.com/user-attachments/assets/4af1ba9e-67cb-4980-8dcd-0e2a3e95a50b)
-
-#### 6. AISOC Copilot & Reasoning Assistant
-![AISOC Copilot & Chatbot Panel](https://github.com/user-attachments/assets/c22e9675-b7e8-4fca-83fc-37f1bfcd89d4)
-
-#### 7. CERT-In Compliance Report & Synchronized 6-Hour SLA Timer
-![CERT-In Compliance Report View](https://github.com/user-attachments/assets/1238e2f0-4bca-4d47-810a-320285d35ece)
-
-#### 8. Automated Report History & Export Actions
-![Automated Report History & Multi-Format Exporter](https://github.com/user-attachments/assets/6e71b118-e382-4705-bb43-be5a6a5b3e8a)
-
-#### 9. System Health & Behavioral Watchdog Dashboard
-![Watchdog System Health Dashboard](https://github.com/user-attachments/assets/c612f6f9-06f5-4bcc-9ab4-1a7d4157e498)
-
-#### 10. Digital Twin Attack Path Simulation
-![Digital Twin Attack Path Simulation](https://github.com/user-attachments/assets/899e9754-945d-4680-96b1-22b1d89ffa34)
-
-#### 11. Emergency Stop & Autonomy Kill Switch Banner
-![Emergency Stop & Autonomy Kill Switch](https://github.com/user-attachments/assets/10532a8d-f8e6-4973-8da1-106dcd505937)
-
-#### 12. Dynamic Level-of-Detail Cytoscape Viewport
-![Dynamic Level-of-Detail Cytoscape Viewport](https://github.com/user-attachments/assets/f647cfdf-11cb-401b-a144-e3373531176a)
+<img width="1917" height="908" alt="image" src="https://github.com/user-attachments/assets/ff12ddd0-a772-4be3-9a46-b792b31ca5ad" />
+<img width="1917" height="911" alt="image" src="https://github.com/user-attachments/assets/8466488e-a891-4bf9-a6f3-30f39270327d" />
+<img width="1917" height="911" alt="image" src="https://github.com/user-attachments/assets/dca442d2-af0a-487f-a7c1-d8d65cba2326" />
+<img width="1917" height="912" alt="image" src="https://github.com/user-attachments/assets/74497d69-3c69-4e96-97a5-5e70eba79c74" />
+<img width="1917" height="903" alt="image" src="https://github.com/user-attachments/assets/4af1ba9e-67cb-4980-8dcd-0e2a3e95a50b" />
+<img width="1917" height="912" alt="image" src="https://github.com/user-attachments/assets/c22e9675-b7e8-4fca-83fc-37f1bfcd89d4" />
+<img width="1917" height="907" alt="image" src="https://github.com/user-attachments/assets/1238e2f0-4bca-4d47-810a-320285d35ece" />
+<img width="1917" height="911" alt="image" src="https://github.com/user-attachments/assets/6e71b118-e382-4705-bb43-be5a6a5b3e8a" />
+<img width="1917" height="907" alt="image" src="https://github.com/user-attachments/assets/c612f6f9-06f5-4bcc-9ab4-1a7d4157e498" />
+<img width="1912" height="912" alt="image" src="https://github.com/user-attachments/assets/899e9754-945d-4680-96b1-22b1d89ffa34" />
+<img width="1902" height="911" alt="image" src="https://github.com/user-attachments/assets/10532a8d-f8e6-4973-8da1-106dcd505937" />
+<img width="1917" height="922" alt="image" src="https://github.com/user-attachments/assets/f647cfdf-11cb-401b-a144-e3373531176a" />
 
 ---
 
