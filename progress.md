@@ -1112,5 +1112,35 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 - `hci_os/tests/test_a12_audit.py` — ⚠️ Modified (Added test database cleanup teardown logic)
 - `progress.md` — ⚠️ Modified (Appended optimization progress entry)
 
+---
+
+## [2026-07-21 22:20] — DEBUG & BUILD — Report Generation Fixes, Dynamic Exporter, & Real-Time Synchronized SLA Countdown (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- **Fixed "Failed to generate report" Error in UI:**
+  - Resolved module-level `IndentationError` in `reports/exporter.py` caused by an orphaned, duplicate `export_pdf` code block from a previous copy-paste remnant.
+  - Fixed relative path initialization in `app.py` `/cert-in/export` endpoint by changing `data_dir` and `output_dir` from `"hci_os/data"` to `None`, allowing `ReportGenerator` to auto-resolve correct absolute paths via `__file__`.
+
+- **Dynamic Report Exporter (`reports/exporter.py`):**
+  - Refactored `export_official_cert_in_pdf` and `export_pdf` to dynamically populate all standard fields (Contact Info, Organization, Sector Checkboxes, Location & ISP, Criticality Note, Affected System tables, Suspected Source IP IOCs, Security Infrastructure, Host Range Checkboxes, and Executed Mitigation Actions) from the input incident/report dictionary instead of relying on hardcoded static strings.
+
+- **Real-Time Synchronized CERT-In 6-Hour SLA Countdown:**
+  - **Timezone Mismatch Resolved:** Stripped trailing `'Z'` from naive local ISO timestamps (e.g. `2026-07-21T20:06:21.375903Z`) in JS parsing to prevent a +5:30 IST timezone shift that was causing the timer to display `09:21:27` instead of the actual ~`03:51:21` remaining time.
+  - **Enforced Strict 6-Hour Cap:** Enforced `CERT_IN_SLA_HOURS = 6` with `Math.min(CERT_IN_SLA_HOURS * 3600, ...)` capping remaining seconds between `00:00:00` and `06:00:00`.
+  - **Shared React Custom Hook (`ET_UI/src/hooks/useCountdown.js`):** Extracted `useCountdown` into a central hook and wired both `CertInReport.jsx` and the main Dashboard stat card (`IncidentPage.jsx`), replacing the static `${deadlineHrs - 1}:59:17` string with a live, real-time ticking SLA countdown.
+
+**Files created/modified:**
+
+- `hci_os/reports/exporter.py` — ⚠️ Modified (Syntax fix, dynamic field bindings for single and period PDFs)
+- `hci_os/app.py` — ⚠️ Modified (ReportGenerator absolute path resolution)
+- `hci_os/ET_UI/src/hooks/useCountdown.js` — ✅ New (Shared live ticking SLA countdown custom hook)
+- `hci_os/ET_UI/src/components/report/CertInReport.jsx` — ⚠️ Modified (Integrated shared useCountdown hook, timezone offset fix)
+- `hci_os/ET_UI/src/pages/IncidentPage.jsx` — ⚠️ Modified (Replaced static timer string with live useCountdown hook)
+- `progress.md` — ⚠️ Modified (Appended progress entry)
+
+
 
 

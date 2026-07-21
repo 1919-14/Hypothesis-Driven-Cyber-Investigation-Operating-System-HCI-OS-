@@ -44,7 +44,7 @@ load_dotenv(_ROOT.parent / ".env")
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, FileResponse
 from pydantic import BaseModel
 
 from agents import a11_watchdog, a12_audit
@@ -1023,7 +1023,7 @@ async def chatbot_query(req: ChatbotRequest) -> JSONResponse:
 )
 async def get_cert_in_report(
     hypothesis_id: str,
-    format: str = Query("json", description="Response format: 'json' or 'md'"),
+    format: str = Query("json", description="Response format: 'json', 'md', or 'pdf'"),
 ) -> Any:
     """
     Compiles a CERT-In Section 70B compliance report from the active hypothesis
@@ -1181,12 +1181,103 @@ async def get_cert_in_report(
                   "Not applicable — no personal data exfiltrated. Placeholder for compliance workflow."]
         return PlainTextResponse(content="\n".join(lines))
 
+    if format == "pdf":
+        try:
+            from reports.exporter import ReportExporter
+            exporter = ReportExporter()
+            h_id = incident.get('hypothesis_id', 'latest')
+            pdf_filename = f"cert_in_report_{h_id}"
+            pdf_path = exporter.export_official_cert_in_pdf(incident, timeline, audit, pdf_filename)
+            return FileResponse(
+                path=pdf_path,
+                filename=f"cert_in_report_{h_id}.pdf",
+                media_type="application/pdf"
+            )
+        except Exception as e:
+            import traceback
+            error_msg = f"PDF Generation Error: {str(e)}\n{traceback.format_exc()}"
+            logger.error(error_msg)
+            return JSONResponse(status_code=500, content={"error": error_msg})
 
     return JSONResponse(content={
         "incident":        incident,
         "timeline_events": timeline,
         "audit_excerpt":   audit,
     })
+
+
+# ── GET /api/cert-in/export ──────────────────────────────────────────────────
+
+@app.get(
+    "/cert-in/export",
+    summary="UI: Download compiled professional CERT-In compliance report in multiple formats",
+)
+async def export_cert_in_report(
+    start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
+    end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
+    report_type: str = Query("monthly", description="Report type (annual, quarterly, monthly, weekly)"),
+    format: str = Query("pdf", description="Output format (pdf, html, markdown, json)"),
+    sector: Optional[str] = Query(None, description="Filter by sector"),
+):
+    try:
+        from datetime import datetime
+        from reports.generator import ReportGenerator
+        
+        # Resilient date parsing
+        s_dt, e_dt = None, None
+        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%Y"):
+            try:
+                if not s_dt:
+                    s_dt = datetime.strptime(start_date, fmt)
+            except ValueError:
+                pass
+            try:
+                if not e_dt:
+                    e_dt = datetime.strptime(end_date, fmt)
+            except ValueError:
+                pass
+        
+        if not s_dt or not e_dt:
+            raise ValueError(f"Could not parse dates: {start_date}, {end_date}")
+            
+        e_dt = e_dt.replace(hour=23, minute=59, second=59)
+        
+        # Initialize ReportGenerator
+        generator = ReportGenerator(
+            data_dir=None,      # auto-resolves to <hci_os>/data via __file__
+            output_dir=None,    # auto-resolves to <hci_os>/reports/output via __file__
+            use_llm=False  # Template fallback for stability
+        )
+        
+        res = generator.generate(
+            start_date=s_dt,
+            end_date=e_dt,
+            report_type=report_type,
+            sector_filter=sector,
+            output_formats=[format],
+            include_appendices=True
+        )
+        
+        if res.get("status") == "success" and format in res.get("output_paths", {}):
+            file_path = res["output_paths"][format]
+            path_obj = Path(file_path)
+            if path_obj.exists():
+                media_types = {
+                    "pdf": "application/pdf",
+                    "html": "text/html",
+                    "markdown": "text/markdown",
+                    "json": "application/json",
+                }
+                return FileResponse(
+                    path=str(path_obj),
+                    media_type=media_types.get(format, "application/octet-stream"),
+                    filename=path_obj.name
+                )
+        raise HTTPException(status_code=500, detail="File generation failed")
+    except Exception as e:
+        logger.error("Failed to generate compliance report: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 # ── POST /cert-in/generate/{hypothesis_id} ────────────────────────────────────

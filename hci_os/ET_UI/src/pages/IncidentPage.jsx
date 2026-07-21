@@ -4,6 +4,7 @@ import Timeline from "@/components/timeline/Timeline";
 import AttackGraph from "@/components/topology/AttackGraph";
 import HumanGatePanel from "@/components/gate/HumanGatePanel";
 import { useTimeline } from "@/api/useTimeline";
+import { useCountdown } from "@/hooks/useCountdown";
 import { ShieldAlert, Activity, Target, GitBranch, Clock } from "lucide-react";
 
 // Helper to format timestamps to Indian Standard Time (IST)
@@ -121,8 +122,7 @@ const IncidentPage = () => {
   const assetSub     = assetsHit > 0 ? (crownJewels > 0 ? `${crownJewels} crown jewel` : `${assetsHit} total`) : "0 total";
 
   const predictEdges = events.filter((e) => e.type === "HYPOTHESIS").length;
-  const deadlineHrs  = incident?.cert_in_deadline_hours ?? 0;
-  const certWindow   = deadlineHrs > 0 ? `${String(deadlineHrs - 1).padStart(2,"0")}:59:17` : "—";
+  const certWindow   = useCountdown(incident?.detection_ts || incident?.created_at);
 
   return (
     <div className="space-y-4">
@@ -133,7 +133,7 @@ const IncidentPage = () => {
         <Stat icon={Activity}  label="Contain Time"   value={containTime}                   sub="from T-0"                    tone="clean"    />
         <Stat icon={Target}    label="Assets Hit"     value={assetsHit > 0 ? String(assetsHit) : "0"}             sub={assetSub}                    tone="critical" />
         <Stat icon={GitBranch} label="Hypotheses"     value={predictEdges > 0 ? String(predictEdges) : "0"}     sub="reasoning chains"            tone="warn"     />
-        <Stat icon={Clock}     label="CERT-In Window" value={certWindow}                    sub={deadlineHrs > 0 ? `${deadlineHrs}h deadline` : "no active incident"}  tone="warn"     />
+        <Stat icon={Clock}     label="CERT-In Window" value={certWindow}                    sub={incident ? "Active SLA" : "no active incident"}  tone="warn"     />
       </div>
 
       <Timeline selectedIdx={selectedEventIdx} onSelect={setSelectedEventIdx} />

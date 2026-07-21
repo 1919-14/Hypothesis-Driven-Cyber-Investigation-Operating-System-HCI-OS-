@@ -1,0 +1,29 @@
+{
+  "report_id": "be4fd1a8-dd59-4ece-9b40-74da8fe4b960",
+  "title": "HCI-OS Cybersecurity Report - Monthly",
+  "report_type": "monthly",
+  "period": "2026-06-21 to 2026-07-21",
+  "generated_at": "2026-07-21T21:58:59.951095",
+  "sector_filter": null,
+  "executive_summary": "During the reporting period from 2026-06-21T00:00:00 to 2026-07-21T23:59:59, HCI-OS monitoring was active but no cybersecurity incidents were detected. The system's 13-agent architecture maintained continuous surveillance across all monitored assets and sectors.\n\nThis absence of detected incidents may indicate effective security controls, a low-threat environment, or a period requiring additional data collection. The GNN-based correlation engine (Agent A5) and anomaly detection system (Agent A4) remained operational throughout the period.\n\nThe federation intelligence sharing (Agent A13) and threat hunting capabilities (Agent A10) continued to ingest threat intelligence from external sources. It is recommended to verify that all data collection endpoints are functioning correctly and that the reporting period aligns with expected system activity.\n\nFor future reporting periods with active incident data, this report will include detailed statistics on incident types, sector analysis, threat actor attribution, and actionable security recommendations.",
+  "statistics": {
+    "total_incidents": 0,
+    "total_decisions": 0,
+    "incidents_by_type": {},
+    "incidents_by_sector": {},
+    "threat_actors": {},
+    "mitre_ttps": {}
+  },
+  "trend_analysis": "## Trend Analysis\n\n**Note:** No previous period data available for comparison. This analysis shows current period statistics only.\n\nTotal incidents: 0\n\n**Top Incident Types:**\n",
+  "recommendations": [
+    {
+      "priority": "MEDIUM",
+      "title": "Continue Security Monitoring",
+      "description": "Maintain current security posture with regular assessments and updates to threat intelligence feeds.",
+      "mitre_mitigation": "M1031 - Network Intrusion Prevention"
+    }
+  ],
+  "data_sources": [],
+  "include_appendices": true,
+  "incidents": []
+}
