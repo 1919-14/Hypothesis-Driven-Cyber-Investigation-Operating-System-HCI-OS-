@@ -2,24 +2,11 @@ import React, { useState, useEffect } from "react";
 import { TID } from "@/constants/testIds";
 import {
   FileText, Download, RefreshCw, ShieldAlert, CheckCircle2,
-  Loader, Printer, Sparkles, ChevronDown, ChevronUp,
+  Loader, Printer, Sparkles, ChevronDown, ChevronUp, Clock,
 } from "lucide-react";
 import { useCertIn } from "@/api/useCertIn";
-
-const pad = (n) => n.toString().padStart(2, "0");
-
-const useCountdown = (deadlineHours) => {
-  const [seconds, setSeconds] = useState(deadlineHours ? deadlineHours * 3600 - 43 : 0);
-  useEffect(() => {
-    if (!deadlineHours) return;
-    const iv = setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(iv);
-  }, [deadlineHours]);
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return `${pad(h)}:${pad(m)}:${pad(s)}`;
-};
+import { usePipelineHistory } from "@/api/usePipelineHistory";
+import { useCountdown } from "@/hooks/useCountdown";
 
 const Row = ({ label, value, mono = false }) => (
   <tr className="border-b border-[var(--hci-border)] last:border-0">
@@ -36,23 +23,43 @@ const NarrativeSection = ({ title, content, color = "text-[var(--hci-brand)]" })
   </div>
 );
 
+const formatTimeIST = (isoString) => {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    return d.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
+    }) + " IST";
+  } catch (e) { return isoString; }
+};
+
 const CertInReport = () => {
-  const { data, refetch, isLoading } = useCertIn("latest");
+  const [selectedId, setSelectedId] = useState("latest");
+  const { data, refetch, isLoading } = useCertIn(selectedId);
+  const { data: historyData, isLoading: historyLoading } = usePipelineHistory(50);
   const incident       = data?.incident;
   const timelineEvents = data?.timeline_events ?? [];
   const auditExcerpt   = data?.audit_excerpt   ?? [];
-  const countdown      = useCountdown(incident?.cert_in_deadline_hours ?? 0);
+  const countdown      = useCountdown(incident?.detection_ts);
 
   // AI narrative state
   const [aiReport, setAiReport]       = useState(null);
   const [aiLoading, setAiLoading]     = useState(false);
   const [showNarrative, setShowNarrative] = useState(true);
 
+  // Reset AI report when switching incidents
+  useEffect(() => {
+    setAiReport(null);
+  }, [selectedId]);
+
   const generateAIReport = async () => {
     if (!incident) return;
     setAiLoading(true);
     try {
-      const res = await fetch(`/api/cert-in/generate/${incident.hypothesis_id ?? "latest"}`, {
+      const targetId = selectedId === "latest" ? (incident.hypothesis_id ?? "latest") : selectedId;
+      const res = await fetch(`/api/cert-in/generate/${targetId}`, {
         method: "POST",
       });
       if (res.ok) {
@@ -70,18 +77,84 @@ const CertInReport = () => {
   const downloadMarkdown = async () => {
     if (!incident) return;
     try {
-      const res = await fetch(`/api/cert-in/report/${incident.hypothesis_id ?? "latest"}?format=md`);
+      const targetId = selectedId === "latest" ? (incident.hypothesis_id ?? "latest") : selectedId;
+      const res = await fetch(`/api/cert-in/report/${targetId}?format=md`);
       const text = await res.text();
       const blob = new Blob([text], { type: "text/markdown" });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
-      a.href = url; a.download = `CERT-IN_${incident.hypothesis_id ?? "report"}.md`;
+      a.href = url; a.download = `CERT-IN_${targetId}.md`;
       document.body.appendChild(a); a.click();
       document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch { /* silent */ }
   };
 
-  const exportPDF = () => window.print();
+  const exportPDF = async () => {
+    if (!incident) return;
+    try {
+      const targetId = selectedId === "latest" ? (incident.hypothesis_id ?? "latest") : selectedId;
+      const res = await fetch(`/api/cert-in/report/${targetId}?format=pdf`);
+      if (!res.ok) throw new Error("PDF download failed");
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = `CERT-IN_${targetId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export PDF failed:", err);
+      alert("Failed to export PDF. Please check backend connection.");
+    }
+  };
+
+  // Professional period report generation states
+  const [reportType, setReportType] = useState("monthly");
+  const [startDate, setStartDate]   = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate]       = useState(() => new Date().toISOString().split("T")[0]);
+  const [sectorFilter, setSectorFilter] = useState("");
+  const [exportFormat, setExportFormat] = useState("pdf");
+  const [generatingPeriod, setGeneratingPeriod] = useState(false);
+
+  const handleGeneratePeriodReport = async () => {
+    setGeneratingPeriod(true);
+    try {
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        report_type: reportType,
+        format: exportFormat,
+      });
+      if (sectorFilter) {
+        params.append("sector", sectorFilter);
+      }
+      
+      const downloadUrl = `/api/cert-in/export?${params.toString()}`;
+      const res = await fetch(downloadUrl);
+      if (!res.ok) throw new Error("Export failed");
+      
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = `CERT-IN_${reportType.toUpperCase()}_REPORT_${startDate}_to_${endDate}.${exportFormat === "markdown" ? "md" : exportFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Cumulative report generation failed:", err);
+      alert("Failed to generate report. Please verify date range and inputs.");
+    } finally {
+      setGeneratingPeriod(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -129,14 +202,60 @@ const CertInReport = () => {
             <Download size={13} /> Download .md
           </button>
           <button onClick={exportPDF} className="btn btn-primary btn-sm">
-            <Printer size={13} /> Export PDF
+            <FileText size={13} /> Export PDF
           </button>
         </div>
       </div>
 
       <div className="p-6 grid grid-cols-12 gap-6">
-        {/* Left: Main report */}
-        <div className="col-span-8">
+        {/* Left Sidebar: Incident History */}
+        <div className="col-span-3 border-r border-[var(--hci-border)] pr-4 space-y-3 no-print">
+          <div className="label-caps mb-1 flex items-center gap-1.5 text-[var(--hci-brand)]">
+            <Clock size={12} />
+            Incident History
+          </div>
+          <div className="space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
+            {historyLoading ? (
+              <div className="text-[12px] text-[var(--hci-text-3)] p-4 text-center">
+                <Loader size={12} className="animate-spin inline mr-1" /> Loading history…
+              </div>
+            ) : !historyData || historyData.length === 0 ? (
+              <div className="text-[12px] text-[var(--hci-text-3)] p-4 text-center">
+                No history recorded
+              </div>
+            ) : (
+              historyData.map((run) => {
+                const isSelected = selectedId === run.hypothesis_id || (selectedId === "latest" && run.hypothesis_id === incident?.hypothesis_id);
+                return (
+                  <button
+                    key={run.run_id || run.hypothesis_id}
+                    onClick={() => setSelectedId(run.hypothesis_id)}
+                    className={`w-full text-left p-2.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                      isSelected
+                        ? "bg-blue-500/10 border-[var(--hci-brand)] text-[var(--hci-text)]"
+                        : "bg-[var(--hci-surface)] border-[var(--hci-border)] hover:border-slate-400 text-[var(--hci-text-2)]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full justify-between">
+                      <span className="font-mono text-[11px] font-bold">{run.hypothesis_id}</span>
+                      <span className={`chip !py-0 !text-[9px] ${run.flagged ? "chip-warning" : "chip-clean"}`}>
+                        {run.flagged ? "FLAGGED" : "CLEAN"}
+                      </span>
+                    </div>
+                    <div className="text-[12px] font-semibold truncate w-full">{run.asset_id || "Unknown Asset"}</div>
+                    <div className="text-[10px] text-[var(--hci-text-3)] font-mono flex justify-between w-full">
+                      <span>risk {run.anomaly_score?.toFixed(2) ?? "0.00"}</span>
+                      <span>{formatTimeIST(run.created_at)}</span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Middle: Main report */}
+        <div className="col-span-6 print:col-span-12">
           <div className="flex items-center gap-2 mb-3">
             <ShieldAlert size={18} className="text-[var(--hci-critical)]" />
             <div className="font-head font-bold text-[18px]">
@@ -222,7 +341,7 @@ const CertInReport = () => {
         </div>
 
         {/* Right: Sidebar */}
-        <div className="col-span-4 space-y-4">
+        <div className="col-span-3 print:col-span-12 space-y-4">
           <div className="panel-raised p-4">
             <div className="label-caps mb-2">6-Hour SLA Countdown</div>
             <div className="font-mono text-[24px] font-bold text-[var(--hci-critical)]">{countdown}</div>
@@ -247,6 +366,93 @@ const CertInReport = () => {
             <div className="font-mono text-[11px] text-[var(--hci-text-3)]">s.iyer@cbse.gov.in</div>
             <div className="mt-2 text-[11.5px] text-[var(--hci-text-3)]">
               Downloaded copies are watermarked with the audit chain root hash.
+            </div>
+          </div>
+
+          {/* Professional Compliance Report Generator */}
+          <div className="panel-raised p-4 space-y-3 no-print">
+            <div className="label-caps mb-1 flex items-center gap-1.5 text-[var(--hci-brand)]">
+              <FileText size={12} />
+              Professional Period Report
+            </div>
+            <p className="text-[11px] text-[var(--hci-text-3)] leading-relaxed">
+              Compile and download a sector-filtered regulatory report across all agents.
+            </p>
+            <div className="space-y-2.5 text-[12.5px]">
+              <div>
+                <label className="block text-[10px] font-bold text-[var(--hci-text-3)] uppercase tracking-wider mb-1">Report Type</label>
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="w-full bg-[var(--hci-surface-2)] border border-[var(--hci-border)] rounded-lg p-2 outline-none text-[12px]"
+                >
+                  <option value="weekly">Weekly Summary</option>
+                  <option value="monthly">Monthly Audit</option>
+                  <option value="quarterly">Quarterly Compliance</option>
+                  <option value="annual">Annual Executive</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-[var(--hci-text-3)] uppercase tracking-wider mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-[var(--hci-surface-2)] border border-[var(--hci-border)] rounded-lg p-1.5 outline-none font-mono text-[11px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[var(--hci-text-3)] uppercase tracking-wider mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-[var(--hci-surface-2)] border border-[var(--hci-border)] rounded-lg p-1.5 outline-none font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[var(--hci-text-3)] uppercase tracking-wider mb-1">Sector Filter</label>
+                <select
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                  className="w-full bg-[var(--hci-surface-2)] border border-[var(--hci-border)] rounded-lg p-2 outline-none text-[12px]"
+                >
+                  <option value="">All Sectors</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Power">Power & Energy</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Telecom">Telecom</option>
+                  <option value="Education">Education</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[var(--hci-text-3)] uppercase tracking-wider mb-1">Export Format</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {["pdf", "html", "markdown"].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setExportFormat(f)}
+                      className={`py-1 text-[11px] font-bold rounded-lg border uppercase transition-colors ${
+                        exportFormat === f
+                          ? "bg-[var(--hci-brand)] border-[var(--hci-brand)] text-white"
+                          : "bg-[var(--hci-surface-2)] border-[var(--hci-border)] hover:border-slate-400 text-[var(--hci-text-2)]"
+                      }`}
+                    >
+                      {f === "markdown" ? "MD" : f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={handleGeneratePeriodReport}
+                disabled={generatingPeriod}
+                className="w-full btn btn-primary text-xs flex items-center justify-center gap-1.5 mt-2"
+              >
+                {generatingPeriod ? <Loader size={12} className="animate-spin" /> : <Download size={12} />}
+                {generatingPeriod ? "Compiling..." : "Generate & Download"}
+              </button>
             </div>
           </div>
         </div>

@@ -1091,5 +1091,56 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 - `docs/BENCHMARK.md` — ✅ New (Human-readable SLA verification report)
 - `progress.md` — ⚠️ Modified (Appended Ticket 14B completion log entry)
 
+---
+
+## [2026-07-21 20:10] — BUILD & OPTIMIZE — Human Gate Optimization, Test Teardown Cleanups, and Report Sidebar Visibility (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- **Autonomous Decision Routing & Human Gate Filtering:** Refactored `a7_soar.py` and `app.py` to route low-risk actions (blast radius <= 0.3) to `AUTO_RESPOND`, setting their `human_reviewed` status to `True` to filter them out of the Human Gate panel while maintaining full traceability in the audit log and pipeline trace.
+- **Removed Mocked Test Entries & Added Test Teardown:** Cleaned the live MySQL database by removing leftover test/mock entries (like `DEC-2026-TEST-001` and `DEC-2026-TEST-002`) left by unit tests. Patched the `isolated_data_dir` fixture in `tests/test_a12_audit.py` to automatically delete all test-seeded database records from `decisions`, `hypotheses`, `human_corrections`, and `pipeline_runs` on teardown, preventing future database pollution.
+- **Priority Filter in Human Gate Panel:** Integrated a dropdown filter select element in the `HumanGatePanel` UI header. This allows analysts to toggle between "All Priorities" and "⚠️ High Priority (Blast Radius ≥ 0.30)" to focus reviews on high blast radius events.
+- **Exposed CERT-In Report to SysAdmin Role:** Added `"sysadmin"` to the permitted roles for the `report` nav item in `Sidebar.jsx`. This makes the compliance report page and its complete "Incident History" sidebar/download cert report section fully visible to the default console user role.
+
+**Files created/modified:**
+
+- `hci_os/agents/a7_soar.py` — ⚠️ Modified (Rerouted low blast radius to AUTO_RESPOND with human_reviewed=True)
+- `hci_os/ET_UI/src/components/gate/HumanGatePanel.jsx` — ⚠️ Modified (Added priorityFilter state and selector)
+- `hci_os/ET_UI/src/components/layout/Sidebar.jsx` — ⚠️ Modified (Enabled report visibility for sysadmin role)
+- `hci_os/tests/test_a12_audit.py` — ⚠️ Modified (Added test database cleanup teardown logic)
+- `progress.md` — ⚠️ Modified (Appended optimization progress entry)
+
+---
+
+## [2026-07-21 22:20] — DEBUG & BUILD — Report Generation Fixes, Dynamic Exporter, & Real-Time Synchronized SLA Countdown (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- **Fixed "Failed to generate report" Error in UI:**
+  - Resolved module-level `IndentationError` in `reports/exporter.py` caused by an orphaned, duplicate `export_pdf` code block from a previous copy-paste remnant.
+  - Fixed relative path initialization in `app.py` `/cert-in/export` endpoint by changing `data_dir` and `output_dir` from `"hci_os/data"` to `None`, allowing `ReportGenerator` to auto-resolve correct absolute paths via `__file__`.
+
+- **Dynamic Report Exporter (`reports/exporter.py`):**
+  - Refactored `export_official_cert_in_pdf` and `export_pdf` to dynamically populate all standard fields (Contact Info, Organization, Sector Checkboxes, Location & ISP, Criticality Note, Affected System tables, Suspected Source IP IOCs, Security Infrastructure, Host Range Checkboxes, and Executed Mitigation Actions) from the input incident/report dictionary instead of relying on hardcoded static strings.
+
+- **Real-Time Synchronized CERT-In 6-Hour SLA Countdown:**
+  - **Timezone Mismatch Resolved:** Stripped trailing `'Z'` from naive local ISO timestamps (e.g. `2026-07-21T20:06:21.375903Z`) in JS parsing to prevent a +5:30 IST timezone shift that was causing the timer to display `09:21:27` instead of the actual ~`03:51:21` remaining time.
+  - **Enforced Strict 6-Hour Cap:** Enforced `CERT_IN_SLA_HOURS = 6` with `Math.min(CERT_IN_SLA_HOURS * 3600, ...)` capping remaining seconds between `00:00:00` and `06:00:00`.
+  - **Shared React Custom Hook (`ET_UI/src/hooks/useCountdown.js`):** Extracted `useCountdown` into a central hook and wired both `CertInReport.jsx` and the main Dashboard stat card (`IncidentPage.jsx`), replacing the static `${deadlineHrs - 1}:59:17` string with a live, real-time ticking SLA countdown.
+
+**Files created/modified:**
+
+- `hci_os/reports/exporter.py` — ⚠️ Modified (Syntax fix, dynamic field bindings for single and period PDFs)
+- `hci_os/app.py` — ⚠️ Modified (ReportGenerator absolute path resolution)
+- `hci_os/ET_UI/src/hooks/useCountdown.js` — ✅ New (Shared live ticking SLA countdown custom hook)
+- `hci_os/ET_UI/src/components/report/CertInReport.jsx` — ⚠️ Modified (Integrated shared useCountdown hook, timezone offset fix)
+- `hci_os/ET_UI/src/pages/IncidentPage.jsx` — ⚠️ Modified (Replaced static timer string with live useCountdown hook)
+- `progress.md` — ⚠️ Modified (Appended progress entry)
+
+
 
 
