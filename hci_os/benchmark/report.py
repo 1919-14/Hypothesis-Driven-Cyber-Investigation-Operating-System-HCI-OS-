@@ -47,8 +47,8 @@ def main() -> None:
             lines.append(f"| **{name}** | - | - | - | - | - | 🚫 `{m.get('reason')}` |")
             continue
 
-        pass_recall = "🟢 PASS" if m.get("pass_recall") else "🔴 FAIL"
-        pass_fpr = "🟢 PASS" if m.get("pass_fpr") else "🔴 FAIL"
+        pass_recall = "🟢 PASS" if str(m.get("pass_recall")) in ("True", "true") or m.get("pass_recall") is True else "🔴 FAIL"
+        pass_fpr = "🟢 PASS" if str(m.get("pass_fpr")) in ("True", "true") or m.get("pass_fpr") is True else "🔴 FAIL"
         status_str = f"Recall: {pass_recall} <br> FPR: {pass_fpr}"
 
         fpr_str = f"{m.get('FPR'):.4f}" if m.get("FPR") == m.get("FPR") else "NaN"
