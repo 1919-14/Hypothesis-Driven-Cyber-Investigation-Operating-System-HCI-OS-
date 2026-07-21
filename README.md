@@ -147,111 +147,41 @@ Our GNN model ensemble is evaluated on a held-out test split (754 nodes, 3 attac
 
 ### 🖼️ UI Dashboard Views
 
-<details open>
-<summary><b>1. Incident Overview & Real-Time Timeline</b></summary>
-
+#### 1. Incident Overview & Real-Time Timeline
 ![Incident Overview & Real-Time Timeline](https://github.com/user-attachments/assets/ff12ddd0-a772-4be3-9a46-b792b31ca5ad)
-*Real-time incident summary, 4-column metric cards, and scrubbable investigation timeline.*
-</details>
 
-<br>
-
-<details>
-<summary><b>2. Attack Topology Graph & GNN Propagation Path</b></summary>
-
+#### 2. Attack Topology Graph & GNN Propagation Path
 ![Attack Topology Graph & GNN Propagation Path](https://github.com/user-attachments/assets/8466488e-a891-4bf9-a6f3-30f39270327d)
-*Cytoscape-powered topological graph displaying dynamic GNN attention propagation weights.*
-</details>
 
-<br>
-
-<details>
-<summary><b>3. Human-in-the-Loop Gatekeeper Panel</b></summary>
-
+#### 3. Human-in-the-Loop Gatekeeper Panel
 ![Human Gatekeeper Approval Panel](https://github.com/user-attachments/assets/dca442d2-af0a-487f-a7c1-d8d65cba2326)
-*Trust-weighted reviewer consensus voting interface for safety-critical assets.*
-</details>
 
-<br>
-
-<details>
-<summary><b>4. Universal Telemetry Log Ingestion</b></summary>
-
+#### 4. Universal Telemetry Log Ingestion
 ![Universal Telemetry Ingestion](https://github.com/user-attachments/assets/74497d69-3c69-4e96-97a5-5e70eba79c74)
-*Ingests raw CSV/JSON logs across Web, CICIDS, Windows Events, and OT SCADA protocols.*
-</details>
 
-<br>
-
-<details>
-<summary><b>5. Live Agent Code Execution Trace</b></summary>
-
+#### 5. Live Agent Code Execution Trace
 ![Live Pipeline Trace & Agent Source Code Inspection](https://github.com/user-attachments/assets/4af1ba9e-67cb-4980-8dcd-0e2a3e95a50b)
-*Provides complete transparency by displaying live python agent source code directly in the UI.*
-</details>
 
-<br>
-
-<details>
-<summary><b>6. AISOC Copilot & Reasoning Assistant</b></summary>
-
+#### 6. AISOC Copilot & Reasoning Assistant
 ![AISOC Copilot & Chatbot Panel](https://github.com/user-attachments/assets/c22e9675-b7e8-4fca-83fc-37f1bfcd89d4)
-*Interactive SOC copilot powered by Groq Llama 3.1 8B for threat explanations and guidance.*
-</details>
 
-<br>
-
-<details>
-<summary><b>7. CERT-In Compliance Report & Synchronized 6-Hour SLA Timer</b></summary>
-
+#### 7. CERT-In Compliance Report & Synchronized 6-Hour SLA Timer
 ![CERT-In Compliance Report View](https://github.com/user-attachments/assets/1238e2f0-4bca-4d47-810a-320285d35ece)
-*Real-time Section 70B compliance draft with wall-clock accurate 6-hour SLA countdown timer.*
-</details>
 
-<br>
-
-<details>
-<summary><b>8. Automated Report History & Export Actions</b></summary>
-
+#### 8. Automated Report History & Export Actions
 ![Automated Report History & Multi-Format Exporter](https://github.com/user-attachments/assets/6e71b118-e382-4705-bb43-be5a6a5b3e8a)
-*Instant PDF and Markdown generation with automated report history tracking.*
-</details>
 
-<br>
-
-<details>
-<summary><b>9. System Health & Behavioral Watchdog Dashboard</b></summary>
-
+#### 9. System Health & Behavioral Watchdog Dashboard
 ![Watchdog System Health Dashboard](https://github.com/user-attachments/assets/c612f6f9-06f5-4bcc-9ab4-1a7d4157e498)
-*Monitors system health, A11 watchdog profiles, circuit breakers, and database connection statuses.*
-</details>
 
-<br>
-
-<details>
-<summary><b>10. Digital Twin Attack Path Simulation</b></summary>
-
+#### 10. Digital Twin Attack Path Simulation
 ![Digital Twin Attack Path Simulation](https://github.com/user-attachments/assets/899e9754-945d-4680-96b1-22b1d89ffa34)
-*Simulates hypothetical attack propagation vectors guided by fused GNN weights.*
-</details>
 
-<br>
-
-<details>
-<summary><b>11. Emergency Stop & Autonomy Kill Switch Banner</b></summary>
-
+#### 11. Emergency Stop & Autonomy Kill Switch Banner
 ![Emergency Stop & Autonomy Kill Switch](https://github.com/user-attachments/assets/10532a8d-f8e6-4973-8da1-106dcd505937)
-*SD-8 emergency autonomy freeze banner notifying analysts of system isolation.*
-</details>
 
-<br>
-
-<details>
-<summary><b>12. Dynamic Level-of-Detail Cytoscape Viewport</b></summary>
-
+#### 12. Dynamic Level-of-Detail Cytoscape Viewport
 ![Dynamic Level-of-Detail Cytoscape Viewport](https://github.com/user-attachments/assets/f647cfdf-11cb-401b-a144-e3373531176a)
-*Progressively renders background nodes on zoom to support performance scaling for 2,000+ nodes.*
-</details>
 
 ---
 
@@ -266,10 +196,6 @@ Our GNN model ensemble is evaluated on a held-out test split (754 nodes, 3 attac
 | <img src="https://github.com/user-attachments/assets/45e37ed7-851a-4e0b-b6c6-9d57ef8d3456" width="400" alt="Page 3" /> | <img src="https://github.com/user-attachments/assets/b8074907-4bfa-4d71-89ac-07e1cdde689f" width="400" alt="Page 4" /> |
 
 ---
-
-
-
-
 
 
 
