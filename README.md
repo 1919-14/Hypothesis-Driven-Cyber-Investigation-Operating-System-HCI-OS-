@@ -43,26 +43,39 @@ During the Round 2 Prototype Sprint, we engineered the system into a high-perfor
 ```mermaid
 graph TD
     A[Raw Telemetry Log] --> B[A1 Ingestion & Trust Gate]
-    B --> C[A2 Normalizer & Context]
-    C --> D[A3 Fingerprint Router]
+    B -->|Sanitized & Trusted| C[A2 Normalizer & Context]
+    C -->|Fingerprint & Attributes| D[A3 Fingerprint Router]
     
-    D -->|Path 1: SHA-256 Hit| E[Fast Block <0.1ms]
-    D -->|Path 2: FAISS Sim >=0.85| F[Accelerated Verdict ~16ms]
-    D -->|Path 3: Miss| G[A4 Anomaly Detector]
+    D -->|Path 1: SHA-256 Hit| E[Redis Decision Cache <0.1ms]
+    D -->|Path 2: FAISS Sim >=0.85| F[FAISS Vector Memory ~16ms]
+    D -->|Path 3: Miss / Novel| G[A4 Anomaly Detector]
     
-    G --> H[A5 GNN Correlator Ensemble]
-    H --> I[A6 Attribution & RAG]
-    I --> J[A7 SOAR & Competing Hypotheses]
+    E --> J[A7 SOAR & Competing Hypotheses]
+    F --> J
+    
+    G -->|Anomaly Score & Vector| H[A5 GNN Correlator Ensemble]
+    H -->|Graph Attention Path| I[A6 Attribution & RAG]
+    
+    H1[A10 Active Hunt VT/Shodan] -.->|Enrichment if Score > 0.7| I
+    
+    I -->|TTPs & Threat Actor| J
     J --> K[A8 Critic Challenge Loop]
-    K -->|Approved| L[A9 Quarantine Sandbox]
-    L --> M[A12 Cryptographic Audit Log]
-    M --> N[Human Gate Approval]
+    K -->|Validated Hypothesis| L[A9 Quarantine Sandbox]
     
-    N -->|Containment Action| O[Isolate Asset / SOAR Playbook]
-    N -->|Indicators| P[A13 Federation Sharing]
+    L -->|Risk & Blast Radius Check| M{A7 Decision Engine}
     
-    H1[A10 Active Hunt VT Lookup] -->|Context Enrichment| I
-    H2[A11 Behavioral Watchdog] -->|Agent Monitoring| M
+    M -->|Low Risk: Blast Radius <= 0.3| N[AUTO_RESPOND: Direct Execution]
+    M -->|High Risk: Blast Radius > 0.3 OR Safety Asset| O[HUMAN_GATE: Analyst Consensus]
+    
+    O -->|Approved| N
+    
+    N --> P[Isolate Asset / SOAR Playbook]
+    N --> Q[A12 Cryptographic Audit Chain]
+    N -->|Confirmed Malicious IOCs| R[A13 Federation STIX Sharing]
+    
+    subgraph Governance & Resilience
+        S[A11 Behavioral Watchdog] -.->|SD-6 Schema & Rate Monitoring| B & G & H & I & J & N
+    end
 ```
 
 ---

@@ -5,38 +5,42 @@
 
 ## 🏗️ System Architecture
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│               HCI-OS (Hypothesis-Driven Cyber Investigation OS)         │
-│                        Multi-Agent PIPELINE                            │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                        │
-│  📊 Raw Logs ──► 🛡️ A1 Ingestion Agent (SD-0/SD-1 Sanitization & Trust)  │
-│                        │                                               │
-│                        ▼                                               │
-│                  🤖 A2 Normalizer Agent (OT & Indian Contexts)         │
-│                        │                                               │
-│                        ▼                                               │
-│                  🧭 A3 Fingerprint Router (3-Path Cache Routing)       │
-│                   /    │    \                                          │
-│                  /     │     \                                         │
-│    (Path 1 Hit) /      │      \ (Path 3 Novel)                         │
-│                ▼       │       ▼                                       │
-│          [Redis Cache] │   🔬 A4 Anomaly Detector (Isolation Forest)   │
-│                │       │       │                                       │
-│                │       │       ▼                                       │
-│                │  (Path 2) 🕸️ A5 GNN Ensemble (GAT + SAGE + TGN)       │
-│                │   [FAISS]     │                                       │
-│                │       │       ▼                                       │
-│                │       │   📚 A6 Attribution & RAG Agent (FAISS RAG)   │
-│                └───────┼───────┤                                       │
-│                        ▼       ▼                                       │
-│                  ⚖️ A7 SOAR & Planner Agent                             │
-│                        │                                               │
-│                        ▼                                               │
-│                  📋 A12 Audit & Memory Agent (Tamper-evident Chain)    │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A[Raw Telemetry Log] --> B[A1 Ingestion & Trust Gate]
+    B -->|Sanitized & Trusted| C[A2 Normalizer & Context]
+    C -->|Fingerprint & Attributes| D[A3 Fingerprint Router]
+    
+    D -->|Path 1: SHA-256 Hit| E[Redis Decision Cache <0.1ms]
+    D -->|Path 2: FAISS Sim >=0.85| F[FAISS Vector Memory ~16ms]
+    D -->|Path 3: Miss / Novel| G[A4 Anomaly Detector]
+    
+    E --> J[A7 SOAR & Competing Hypotheses]
+    F --> J
+    
+    G -->|Anomaly Score & Vector| H[A5 GNN Correlator Ensemble]
+    H -->|Graph Attention Path| I[A6 Attribution & RAG]
+    
+    H1[A10 Active Hunt VT/Shodan] -.->|Enrichment if Score > 0.7| I
+    
+    I -->|TTPs & Threat Actor| J
+    J --> K[A8 Critic Challenge Loop]
+    K -->|Validated Hypothesis| L[A9 Quarantine Sandbox]
+    
+    L -->|Risk & Blast Radius Check| M{A7 Decision Engine}
+    
+    M -->|Low Risk: Blast Radius <= 0.3| N[AUTO_RESPOND: Direct Execution]
+    M -->|High Risk: Blast Radius > 0.3 OR Safety Asset| O[HUMAN_GATE: Analyst Consensus]
+    
+    O -->|Approved| N
+    
+    N --> P[Isolate Asset / SOAR Playbook]
+    N --> Q[A12 Cryptographic Audit Chain]
+    N -->|Confirmed Malicious IOCs| R[A13 Federation STIX Sharing]
+    
+    subgraph Governance & Resilience
+        S[A11 Behavioral Watchdog] -.->|SD-6 Schema & Rate Monitoring| B & G & H & I & J & N
+    end
 ```
 
 ### AI Models Used
