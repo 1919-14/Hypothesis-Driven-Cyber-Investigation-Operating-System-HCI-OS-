@@ -1067,4 +1067,29 @@ A11's `execute_with_watchdog()` wraps every agent call in the master loop via `_
 
 - `progress.md` — ⚠️ Modified (Appended transparency and traceability log entry)
 
+---
+
+## [2026-07-21 08:30] — BUILD & OPTIMIZE — TICKET 14B COMPLETE: GNN Split, Balanced Loss, and SLA Benchmarking (Contributor: V S S K Sai Narayana)
+
+**Status:** ✅ SUCCESS
+
+**What was done:**
+
+- **Stratified Train/Val/Test Split:** Implemented a stratified node-splitting utility (`hci_os/scripts/split_utils.py`) to evenly distribute minority class nodes (compromised assets, 16 out of 5,026) across training (70%), validation (15%), and testing (15%) splits, preventing class starvation.
+- **Inductive GNN Training & Unbiased Evaluation:** Refactored GAT and GraphSAGE training scripts to restrict training loss calculations exclusively to the `train_mask` nodes, preventing data leakage. Implemented a proper held-out test evaluation phase reporting Accuracy, Precision, Recall, F1, and ROC-AUC on unseen test data.
+- **TGN Windowing and Touched Node Alignment:** Fixed the target leakage and false-positive collapse in the Temporal Graph Network (TGN) by mapping predictions only to the active subset of nodes touched within a 10,000-event window, eliminating the scoring mismatch on silent nodes.
+- **Automated SLA Benchmarking Suite:** Developed a custom benchmarking suite (`hci_os/benchmark/benchmark.py` and `hci_os/benchmark/report.py`) that runs automated test-split evaluation, measures the False Positive Rate (FPR), checks results against technical SLA targets (Recall >= 70%, FPR <= 10%), and generates a formatted, professional report at `docs/BENCHMARK.md`.
+
+**Files created/modified:**
+
+- `hci_os/scripts/split_utils.py` — ✅ New (Stratified splitting and event-touched mask utilities)
+- `hci_os/scripts/build_and_train_gnn.py` — ⚠️ Modified (Integrated splits, class-balanced losses, and window controls)
+- `hci_os/scripts/evaluate_gnns.py` — ⚠️ Modified (Held-out test set evaluation only, type-casting fixes)
+- `hci_os/benchmark/benchmark.py` — ✅ New (SLA benchmark runner & metrics exporter)
+- `hci_os/benchmark/report.py` — ✅ New (Markdown compliance report generator)
+- `hci_os/benchmark/benchmark_results.json` — ✅ New (Raw JSON benchmark records)
+- `docs/BENCHMARK.md` — ✅ New (Human-readable SLA verification report)
+- `progress.md` — ⚠️ Modified (Appended Ticket 14B completion log entry)
+
+
 

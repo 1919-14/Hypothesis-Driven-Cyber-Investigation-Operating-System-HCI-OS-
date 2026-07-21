@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-07-21T03:01:15Z",
+  "scope_note": "Precision/Recall/F1/FPR measured on held-out test split. MTTD/MTTR and MITRE attribution accuracy are NOT_BENCHMARKED in this submission (require a labeled attack-replay scenario not available in the current build window) -- reported honestly rather than fabricated.",
+  "test_split_size": 754,
+  "test_split_attack_nodes": 3,
+  "models": {
+    "GAT": {
+      "Accuracy": 1.0,
+      "Precision": 1.0,
+      "Recall": 1.0,
+      "F1-Score": 1.0,
+      "ROC-AUC": 1.0,
+      "n_test_nodes": 754,
+      "n_test_attack": 3,
+      "FPR": 0.0,
+      "pass_recall": true,
+      "pass_fpr": true
+    },
+    "GraphSAGE": {
+      "Accuracy": 0.9893899204244032,
+      "Precision": 0.2727272727272727,
+      "Recall": 1.0,
+      "F1-Score": 0.42857142857142855,
+      "ROC-AUC": 0.9946737683089215,
+      "n_test_nodes": 754,
+      "n_test_attack": 3,
+      "FPR": 0.010652463382157125,
+      "pass_recall": true,
+      "pass_fpr": true
+    },
+    "TGN": {
+      "Accuracy": 1.0,
+      "Precision": 0.0,
+      "Recall": 0.0,
+      "F1-Score": 0.0,
+      "ROC-AUC": 0.5,
+      "n_test_nodes": 92,
+      "n_test_attack": 0,
+      "FPR": 0.0,
+      "pass_recall": false,
+      "pass_fpr": true
+    }
+  },
+  "MTTD_seconds": "NOT_BENCHMARKED",
+  "MTTR_seconds": "NOT_BENCHMARKED",
+  "MITRE_attribution_accuracy": "NOT_BENCHMARKED"
+}
