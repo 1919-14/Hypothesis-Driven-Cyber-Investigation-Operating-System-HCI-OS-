@@ -26,7 +26,7 @@ const NAV = [
   { id: "topology",  label: "Attack Topology",   icon: Share2,      roles: ["soc", "reviewer", "ciso", "sysadmin"] },
   { id: "gate",      label: "Human Gate",        icon: Users,       roles: ["soc", "reviewer", "sysadmin"] },
   { id: "twin",      label: "Digital Twin",      icon: Bug,         roles: ["soc", "reviewer", "sysadmin"] },
-  { id: "report",    label: "CERT-In Report",    icon: FileText,    roles: ["soc", "reviewer", "ciso"] },
+  { id: "report",    label: "CERT-In Report",    icon: FileText,    roles: ["soc", "reviewer", "ciso", "sysadmin"] },
   { id: "exec",      label: "Executive View",    icon: LineChart,   roles: ["ciso"] },
   { id: "audit",     label: "Audit Chain",       icon: Lock,        roles: ["reviewer", "ciso", "sysadmin"] },
   { id: "health",    label: "Agent Health",      icon: Cpu,         roles: ["sysadmin"] },

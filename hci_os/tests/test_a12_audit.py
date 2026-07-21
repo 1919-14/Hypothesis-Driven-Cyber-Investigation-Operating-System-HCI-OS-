@@ -87,6 +87,20 @@ def isolated_data_dir(tmp_path):
     a12_mod._pending_reviews.clear()
     a12_mod._default_agent = None
 
+    # Clean up test database entries in teardown
+    try:
+        from stores import mysql_store
+        conn = mysql_store._get_conn()
+        if conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM decisions WHERE decision_id LIKE '%TEST%'")
+                cur.execute("DELETE FROM hypotheses WHERE hypothesis_id LIKE '%TEST%'")
+                cur.execute("DELETE FROM human_corrections WHERE decision_id LIKE '%TEST%'")
+                cur.execute("DELETE FROM pipeline_runs WHERE decision_id LIKE '%TEST%'")
+    except Exception:
+        pass
+
+
 
 @pytest.fixture
 def sample_decision():

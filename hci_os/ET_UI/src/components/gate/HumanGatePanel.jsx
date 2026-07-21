@@ -180,6 +180,7 @@ const HumanGatePanel = ({ compact = false }) => {
   const [tick, setTick]                     = useState(0);
   const [rows, setRows]                     = useState([]);
   const [deletedIds, setDeletedIds]         = useState(new Set());
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
   useEffect(() => {
     const iv = setInterval(() => setTick((t) => t + 1), 1000);
@@ -208,6 +209,13 @@ const HumanGatePanel = ({ compact = false }) => {
       return updated.sort((a, b) => new Date(b.ts_iso || 0) - new Date(a.ts_iso || 0));
     });
   }, [apiDecisions, deletedIds, localStatus]);
+
+  const filteredRows = rows.filter((r) => {
+    if (priorityFilter === "high") {
+      return (r.blast_radius_score ?? r.blast_radius ?? 0) >= 0.3;
+    }
+    return true;
+  });
 
   const timeLeft   = (r) => Math.max(0, (r.sla_seconds_left ?? 900) - tick);
   const toggleCode    = (id) => setExpandedCode((s)    => ({ ...s, [id]: !s[id] }));
@@ -260,23 +268,34 @@ const HumanGatePanel = ({ compact = false }) => {
         <div className="px-4 py-3 border-b border-[var(--hci-border)] flex items-center gap-2 flex-wrap">
           <Users size={15} className="text-[var(--hci-brand)] shrink-0" />
           <div className="font-head font-bold text-[13.5px]">Human Gate</div>
-          <span className="chip chip-warning">{rows.filter(r => r.status === "pending").length} pending</span>
+          <span className="chip chip-warning">{filteredRows.filter(r => r.status === "pending").length} pending</span>
           {isLoading && <Loader size={12} className="animate-spin text-[var(--hci-text-3)]" />}
-          <span className="ml-auto label-caps whitespace-nowrap">SLA · 15 min</span>
+          
+          <div className="ml-auto flex items-center gap-3">
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="text-[11.5px] bg-[var(--hci-surface-2)] border border-[var(--hci-border)] rounded-lg px-2.5 py-1 outline-none text-[var(--hci-text)] font-semibold hover:border-slate-400 transition-colors"
+            >
+              <option value="all">All Priorities</option>
+              <option value="high">⚠️ High Priority (Blast Radius &ge; 0.30)</option>
+            </select>
+            <span className="label-caps whitespace-nowrap text-[var(--hci-text-3)]">SLA · 15 min</span>
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto">
-          {rows.length === 0 && !isLoading && (
+          {filteredRows.length === 0 && !isLoading && (
             <div className="p-8 text-center text-[var(--hci-text-3)] flex flex-col items-center justify-center h-full">
               <CheckCircle2 size={32} className="mb-2 text-emerald-500 opacity-60" />
               <div className="font-semibold text-[12.5px]">All Gates Cleared</div>
               <div className="text-[11.5px] mt-0.5 max-w-[200px] mx-auto">
-                No decisions pending human authorization at this time.
+                No decisions matching the active filter pending human authorization.
               </div>
             </div>
           )}
 
-          {rows.map((r) => {
+          {filteredRows.map((r) => {
             const left        = timeLeft(r);
             const slaCritical = left < 300;
             const acted       = r.status !== "pending";
@@ -285,6 +304,7 @@ const HumanGatePanel = ({ compact = false }) => {
             const explainOpen = !!expandedExplain[r.decision_id];
             const ai          = aiData[r.decision_id];
             const aiIsLoading = !!aiLoading[r.decision_id];
+            const isAuto      = !r.action_taken?.includes("(PENDING)") && r.action_taken?.toLowerCase() !== "monitor";
 
             return (
               <div
@@ -306,9 +326,20 @@ const HumanGatePanel = ({ compact = false }) => {
                         <span className={slaCritical ? "text-red-600 font-semibold" : "text-[var(--hci-text-3)]"}>{fmt(left)} left</span>
                       </span>
                     </div>
-
+ 
                     {/* Action */}
-                    <div className="mt-1.5 font-semibold text-[13.5px] text-[var(--hci-text)]">{r.action_taken}</div>
+                    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[13.5px] text-[var(--hci-text)]">{r.action_taken}</span>
+                      {isAuto ? (
+                        <span className="chip chip-clean bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-bold text-[10.5px] flex items-center gap-1">
+                          <Sparkles size={11} className="text-emerald-400 animate-pulse" /> Autonomous AI Execution (Overrideable)
+                        </span>
+                      ) : (
+                        <span className="chip chip-warning bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold text-[10.5px] flex items-center gap-1">
+                          <Clock size={11} className="text-amber-400" /> Pending Human Gate Approval
+                        </span>
+                      )}
+                    </div>
 
                     {/* Metrics */}
                     <div className="mt-1 flex items-center gap-4 text-[11.5px] text-[var(--hci-text-3)] font-mono">
@@ -316,7 +347,7 @@ const HumanGatePanel = ({ compact = false }) => {
                       <span>blast_radius <span className="text-[var(--hci-text)] font-semibold">{(r.blast_radius_score||0).toFixed(2)}</span></span>
                       <span>ts {formatTimeIST(r.ts_iso)}</span>
                     </div>
-
+ 
                     {/* AI Generate button + expandable explain */}
                     <div className="mt-2 space-y-1">
                       {!ai && (
@@ -340,7 +371,7 @@ const HumanGatePanel = ({ compact = false }) => {
                         </button>
                       )}
                     </div>
-
+ 
                     {/* AI Explanation Drawer */}
                     {ai && explainOpen && (
                       <div className="mt-2 rounded-lg border border-[var(--hci-border)] bg-[var(--hci-surface-2)] p-3 space-y-3 text-[11.5px]">
@@ -385,7 +416,7 @@ const HumanGatePanel = ({ compact = false }) => {
                         </div>
                       </div>
                     )}
-
+ 
                     {/* Controls row */}
                     <div className="mt-2 flex gap-2 flex-wrap">
                       {!acted && (
@@ -407,10 +438,10 @@ const HumanGatePanel = ({ compact = false }) => {
                         </button>
                       )}
                     </div>
-
+ 
                     {debateOpen && !acted && <AIDebateBox decision={r} aiData={ai} />}
                     {ai && (codeOpen || acted) && <ProductionCodeView decision={r} aiData={ai} />}
-
+ 
                     {/* Action buttons */}
                     {acted ? (
                       <div className="mt-2 flex items-center gap-2">
@@ -427,8 +458,13 @@ const HumanGatePanel = ({ compact = false }) => {
                       </div>
                     ) : (
                       <div className="mt-3 flex flex-wrap gap-1.5">
-                        <button data-testid={TID.gateConfirm(r.decision_id)} disabled={readOnly || isMutating} onClick={() => act(r.decision_id, "confirmed", "confirm")} className="btn btn-success-outline btn-sm">
-                          <CheckCircle2 size={12} /> CONFIRM
+                        <button
+                          data-testid={TID.gateConfirm(r.decision_id)}
+                          disabled={readOnly || isMutating}
+                          onClick={() => act(r.decision_id, "confirmed", "confirm")}
+                          className={`${isAuto ? "btn-outline" : "btn-success-outline"} btn btn-sm`}
+                        >
+                          <CheckCircle2 size={12} /> {isAuto ? "ACKNOWLEDGE & DISMISS" : "CONFIRM"}
                         </button>
                         <button data-testid={TID.gateRevoke(r.decision_id)} disabled={readOnly || isMutating} onClick={() => act(r.decision_id, "revoked", "revoke")} className="btn btn-danger btn-sm">
                           <XCircle size={12} /> REVOKE
