@@ -51,3 +51,8 @@ hci_os/data/ET HCI GNN Dataset/
 # Node modules & temporary PDF outputs
 node_modules/
 hci_os/reports/output/
+
+# Internal documentation sources & generators
+docs/generate_pdf.js
+docs/pdf_data_master_final.md
+docs/pdf data master.md
