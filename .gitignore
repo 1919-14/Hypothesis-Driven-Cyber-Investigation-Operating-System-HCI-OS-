@@ -47,3 +47,7 @@ benchmark/results/
 
 # Large GNN Dataset
 hci_os/data/ET HCI GNN Dataset/
+
+# Node modules & temporary PDF outputs
+node_modules/
+hci_os/reports/output/
